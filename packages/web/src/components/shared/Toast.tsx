@@ -6,18 +6,16 @@ export default function Toast() {
 
   if (!toast) return null;
 
-  const bg =
-    toast.type === 'success' ? 'bg-green-600' :
-    toast.type === 'error' ? 'bg-red-600' :
-    'bg-blue-600';
+  const styles =
+    toast.type === 'success' ? 'bg-emerald text-white' :
+    toast.type === 'error'   ? 'bg-coral text-white' :
+    'bg-ink text-cream';
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom">
-      <div className={`${bg} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3`}>
+    <div className="fixed bottom-6 right-6 z-50 animate-slide-up">
+      <div className={`${styles} pl-4 pr-3 py-3 rounded-lg shadow-elevated flex items-center gap-3 font-body text-sm`}>
         <span>{toast.message}</span>
-        <button onClick={clearToast} className="text-white/70 hover:text-white">
-          &times;
-        </button>
+        <button onClick={clearToast} className="opacity-60 hover:opacity-100 text-lg leading-none ml-1">&times;</button>
       </div>
     </div>
   );

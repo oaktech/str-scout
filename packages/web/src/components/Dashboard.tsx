@@ -7,8 +7,7 @@ import LoadingSpinner from './shared/LoadingSpinner';
 const fmt = (v: number) => `$${Math.round(v).toLocaleString()}`;
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
-function metricColor(value: number, green: number, yellow: number, invert = false): 'green' | 'yellow' | 'red' | 'default' {
-  if (invert) return value < green ? 'green' : value < yellow ? 'yellow' : 'red';
+function metricColor(value: number, green: number, yellow: number): 'green' | 'yellow' | 'red' | 'default' {
   return value > green ? 'green' : value > yellow ? 'yellow' : 'red';
 }
 
@@ -25,26 +24,35 @@ export default function Dashboard() {
   }
 
   if (!data) {
-    return <div className="text-scout-muted text-center py-12">Failed to load dashboard</div>;
+    return <div className="text-stone text-center py-16">Failed to load dashboard</div>;
   }
 
   const { portfolio, properties } = data;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Portfolio Overview</h2>
+    <div className="animate-fade-in">
+      {/* Page header */}
+      <div className="flex items-end justify-between mb-10">
+        <div>
+          <h2 className="font-serif text-4xl text-ink tracking-tight">Portfolio</h2>
+          <p className="font-serif italic text-stone text-lg mt-1">
+            {portfolio.propertyCount > 0
+              ? `${portfolio.propertyCount} ${portfolio.propertyCount === 1 ? 'property' : 'properties'} under management`
+              : 'Your investment portfolio'}
+          </p>
+        </div>
         <button
           onClick={() => setPage({ name: 'add-property' })}
-          className="bg-scout-accent hover:bg-scout-accent/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          className="bg-ink hover:bg-espresso text-cream px-5 py-2.5 rounded-md text-sm font-medium
+                     transition-colors duration-200 shadow-card hover:shadow-card-hover"
         >
-          + Add Property
+          Add Property
         </button>
       </div>
 
-      {/* Portfolio summary cards */}
+      {/* Portfolio summary */}
       {portfolio.propertyCount > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-12 stagger">
           <MetricCard label="Properties" value={String(portfolio.propertyCount)} />
           <MetricCard label="Annual Revenue" value={fmt(portfolio.totalRevenue)} />
           <MetricCard
@@ -60,19 +68,28 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Section header */}
+      {properties.length > 0 && (
+        <div className="flex items-baseline gap-3 mb-5">
+          <h3 className="font-serif text-xl text-ink">Properties</h3>
+          <div className="flex-1 border-t border-sand/60 translate-y-[-2px]" />
+        </div>
+      )}
+
       {/* Property grid */}
       {properties.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-scout-border rounded-lg">
-          <p className="text-scout-muted mb-3">No properties yet</p>
+        <div className="text-center py-20 border border-dashed border-sand rounded-lg bg-white/50">
+          <div className="font-serif text-2xl text-ink mb-2">No properties yet</div>
+          <p className="text-stone text-sm mb-5">Add your first property to begin analyzing returns.</p>
           <button
             onClick={() => setPage({ name: 'add-property' })}
-            className="text-scout-accent hover:underline text-sm"
+            className="text-emerald hover:text-emerald-dark font-medium text-sm transition-colors"
           >
-            Add your first property
+            Add your first property &rarr;
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 stagger">
           {properties.map((p) => (
             <PropertyCard key={p.id} property={p} />
           ))}

@@ -19,6 +19,12 @@ function metricColor(value: number, green: number, yellow: number): 'green' | 'y
 
 type Tab = 'overview' | 'financials' | 'documents';
 
+const TAB_LABELS: Record<Tab, string> = {
+  overview: 'Overview',
+  financials: 'Financials',
+  documents: 'Documents',
+};
+
 export default function PropertyDetail({ id }: { id: number }) {
   const setPage = useStore((s) => s.setPage);
   const showToast = useStore((s) => s.showToast);
@@ -32,10 +38,11 @@ export default function PropertyDetail({ id }: { id: number }) {
 
   if (!property) {
     return (
-      <div className="text-center py-12">
-        <p className="text-scout-muted mb-3">Property not found</p>
-        <button onClick={() => setPage({ name: 'dashboard' })} className="text-scout-accent hover:underline text-sm">
-          Back to Dashboard
+      <div className="text-center py-16">
+        <div className="font-serif text-2xl text-ink mb-2">Property not found</div>
+        <button onClick={() => setPage({ name: 'dashboard' })}
+          className="text-emerald hover:text-emerald-dark text-sm font-medium">
+          Back to Portfolio
         </button>
       </div>
     );
@@ -71,129 +78,152 @@ export default function PropertyDetail({ id }: { id: number }) {
   };
 
   return (
-    <div>
+    <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <button onClick={() => setPage({ name: 'dashboard' })} className="text-scout-muted hover:text-white text-xs mb-2 block">
-            &larr; Dashboard
-          </button>
-          <h2 className="text-2xl font-bold">{property.name}</h2>
-          {property.city && property.state && (
-            <p className="text-scout-muted text-sm">{property.address ? `${property.address}, ` : ''}{property.city}, {property.state} {property.zip}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={property.status}
-            onChange={(e) => handleStatusChange(e.target.value as PropertyStatus)}
-            className="bg-scout-surface border border-scout-border rounded-lg px-3 py-1.5 text-sm text-white"
-          >
-            <option value="analyzing">Analyzing</option>
-            <option value="active">Active</option>
-            <option value="sold">Sold</option>
-            <option value="archived">Archived</option>
-          </select>
-          <button onClick={handleDeleteProperty}
-            className="text-red-400 hover:text-red-300 text-sm px-3 py-1.5 border border-red-400/30 rounded-lg">
-            Delete
-          </button>
+      <div className="mb-8">
+        <button onClick={() => setPage({ name: 'dashboard' })}
+          className="text-stone hover:text-ink text-xs font-medium mb-4 block transition-colors">
+          &larr; Portfolio
+        </button>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="font-serif text-4xl text-ink tracking-tight">{property.name}</h2>
+            {property.city && property.state && (
+              <p className="font-serif italic text-stone text-lg mt-1">
+                {property.address ? `${property.address}, ` : ''}{property.city}, {property.state} {property.zip}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-3 shrink-0 ml-6">
+            <select
+              value={property.status}
+              onChange={(e) => handleStatusChange(e.target.value as PropertyStatus)}
+              className="input-field !w-auto !py-1.5 text-xs"
+            >
+              <option value="analyzing">Analyzing</option>
+              <option value="active">Active</option>
+              <option value="sold">Sold</option>
+              <option value="archived">Archived</option>
+            </select>
+            <button onClick={handleDeleteProperty}
+              className="text-coral/70 hover:text-coral text-xs font-medium px-3 py-1.5 border border-coral/20
+                         rounded-md hover:bg-coral-light transition-colors">
+              Delete
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-scout-border">
+      <div className="flex items-center gap-0 mb-8 border-b border-sand/60">
         {(['overview', 'financials', 'documents'] as Tab[]).map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium capitalize -mb-px border-b-2 transition-colors
-              ${tab === t ? 'border-scout-accent text-scout-accent' : 'border-transparent text-scout-muted hover:text-white'}`}>
-            {t}
+            className={`px-5 py-3 text-sm font-medium -mb-px border-b-2 transition-all duration-200
+              ${tab === t
+                ? 'border-emerald text-emerald'
+                : 'border-transparent text-stone hover:text-ink'
+              }`}>
+            {TAB_LABELS[t]}
           </button>
         ))}
+        {saving && (
+          <div className="ml-auto flex items-center gap-2 text-xs text-stone">
+            <LoadingSpinner size="sm" />
+            Saving...
+          </div>
+        )}
       </div>
 
-      {/* Tab content */}
+      {/* Overview Tab */}
       {tab === 'overview' && c && (
-        <div className="space-y-6">
-          {/* Key metrics grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <MetricCard label="Monthly Cash Flow" value={fmt(c.monthlyCashFlow)} color={c.monthlyCashFlow > 500 ? 'green' : c.monthlyCashFlow > 0 ? 'yellow' : 'red'} />
-            <MetricCard label="Cash on Cash" value={pct(c.cashOnCash)} color={metricColor(c.cashOnCash, 0.1, 0.05)} />
+        <div className="space-y-8">
+          {/* Key metrics */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
+            <MetricCard label="Monthly Cash Flow" value={fmt(c.monthlyCashFlow)}
+              color={c.monthlyCashFlow > 500 ? 'green' : c.monthlyCashFlow > 0 ? 'yellow' : 'red'} />
+            <MetricCard label="Cash on Cash Return" value={pct(c.cashOnCash)} color={metricColor(c.cashOnCash, 0.1, 0.05)} />
             <MetricCard label="Cap Rate" value={pct(c.capRate)} color={metricColor(c.capRate, 0.08, 0.05)} />
             <MetricCard label="DSCR" value={c.dscr === Infinity ? '\u221E' : c.dscr.toFixed(2)} color={metricColor(c.dscr, 1.5, 1.0)} />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
             <MetricCard label="Monthly Revenue" value={fmt(c.monthlyRevenue)} />
-            <MetricCard label="NOI" value={fmt(c.noi)} color={c.noi > 0 ? 'green' : 'red'} />
+            <MetricCard label="Net Operating Income" value={fmt(c.noi)} color={c.noi > 0 ? 'green' : 'red'} />
             <MetricCard label="Gross Yield" value={pct(c.grossYield)} />
-            <MetricCard label="Break-Even Occ." value={pct(c.breakEvenOccupancy)} color={c.breakEvenOccupancy < 0.5 ? 'green' : c.breakEvenOccupancy < 0.7 ? 'yellow' : 'red'} />
+            <MetricCard label="Break-Even Occupancy" value={pct(c.breakEvenOccupancy)}
+              color={c.breakEvenOccupancy < 0.5 ? 'green' : c.breakEvenOccupancy < 0.7 ? 'yellow' : 'red'} />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
             <MetricCard label="Monthly P&I" value={fmt(c.monthlyPI)} />
             <MetricCard label="GRM" value={c.grm.toFixed(1)} />
             <MetricCard label="Price per Door" value={fmt(c.pricePerDoor)} />
             <MetricCard label="Total Cash Invested" value={fmt(c.totalCashInvested)} />
           </div>
 
-          {/* Cash flow breakdown bar */}
-          <div className="bg-scout-surface border border-scout-border rounded-lg p-4">
-            <h3 className="text-sm font-semibold mb-3">Annual Cash Flow Breakdown</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-scout-muted">Revenue</span>
-                <span className="text-green-400 font-mono">{fmt(c.annualRevenue)}</span>
+          {/* Cash flow breakdown */}
+          <div className="bg-white border border-sand/50 rounded-lg shadow-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-sand/40">
+              <h3 className="font-serif text-lg text-ink">Annual Cash Flow</h3>
+            </div>
+            <div className="px-6 py-5 space-y-3 text-sm">
+              <div className="flex justify-between items-baseline">
+                <span className="text-charcoal">Revenue</span>
+                <span className="font-mono text-emerald-dark font-medium">{fmt(c.annualRevenue)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-scout-muted">Operating Expenses</span>
-                <span className="text-red-400 font-mono">-{fmt(c.annualExpenses)}</span>
+              <div className="flex justify-between items-baseline">
+                <span className="text-charcoal">Operating Expenses</span>
+                <span className="font-mono text-coral font-medium">&minus;{fmt(c.annualExpenses)}</span>
               </div>
-              <div className="flex justify-between border-t border-scout-border pt-2">
-                <span className="text-scout-muted">NOI</span>
-                <span className="font-mono">{fmt(c.noi)}</span>
+              <div className="border-t border-sand/50 pt-3 flex justify-between items-baseline">
+                <span className="text-ink font-medium">NOI</span>
+                <span className="font-mono text-ink font-medium">{fmt(c.noi)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-scout-muted">Debt Service</span>
-                <span className="text-red-400 font-mono">-{fmt(c.annualDebtService)}</span>
+              <div className="flex justify-between items-baseline">
+                <span className="text-charcoal">Debt Service</span>
+                <span className="font-mono text-coral font-medium">&minus;{fmt(c.annualDebtService)}</span>
               </div>
-              <div className="flex justify-between border-t border-scout-border pt-2 font-semibold">
-                <span>Annual Cash Flow</span>
-                <span className={c.annualCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}>{fmt(c.annualCashFlow)}</span>
+              <div className="border-t-2 border-ink/10 pt-3 flex justify-between items-baseline">
+                <span className="text-ink font-semibold">Net Cash Flow</span>
+                <span className={`font-mono text-lg font-semibold ${c.annualCashFlow >= 0 ? 'text-emerald-dark' : 'text-coral'}`}>
+                  {fmt(c.annualCashFlow)}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* 10-year projection table */}
-          <div className="bg-scout-surface border border-scout-border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">10-Year Projection</h3>
-              <div className="flex gap-4 text-xs text-scout-muted">
-                <span>Net Return: <span className="text-green-400 font-mono">{fmt(c.tenYearNetReturn)}</span></span>
-                <span>CAGR: <MetricBadge value={c.cagr} thresholds={{ green: 0.1, yellow: 0.05 }} format={pct} /></span>
+          {/* 10-year projection */}
+          <div className="bg-white border border-sand/50 rounded-lg shadow-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-sand/40 flex items-baseline justify-between">
+              <h3 className="font-serif text-lg text-ink">10-Year Projection</h3>
+              <div className="flex gap-5 text-xs">
+                <span className="text-stone">Net Return: <span className="font-mono font-medium text-emerald-dark">{fmt(c.tenYearNetReturn)}</span></span>
+                <span className="text-stone">CAGR: <MetricBadge value={c.cagr} thresholds={{ green: 0.1, yellow: 0.05 }} format={pct} /></span>
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-scout-muted border-b border-scout-border">
-                    <th className="text-left py-2 pr-4">Year</th>
-                    <th className="text-right py-2 px-2">Revenue</th>
-                    <th className="text-right py-2 px-2">Expenses</th>
-                    <th className="text-right py-2 px-2">Cash Flow</th>
-                    <th className="text-right py-2 px-2">Prop Value</th>
-                    <th className="text-right py-2 pl-2">Equity</th>
+                  <tr className="text-[10px] uppercase tracking-wider text-stone border-b border-sand/40">
+                    <th className="text-left py-3 px-6 font-semibold">Year</th>
+                    <th className="text-right py-3 px-4 font-semibold">Revenue</th>
+                    <th className="text-right py-3 px-4 font-semibold">Expenses</th>
+                    <th className="text-right py-3 px-4 font-semibold">Cash Flow</th>
+                    <th className="text-right py-3 px-4 font-semibold">Property Value</th>
+                    <th className="text-right py-3 px-6 font-semibold">Equity</th>
                   </tr>
                 </thead>
                 <tbody>
                   {c.tenYearProjection.map((yr) => (
-                    <tr key={yr.year} className="border-b border-scout-border/50">
-                      <td className="py-1.5 pr-4 font-mono">{yr.year}</td>
-                      <td className="py-1.5 px-2 text-right font-mono text-green-400">{fmt(yr.revenue)}</td>
-                      <td className="py-1.5 px-2 text-right font-mono text-red-400">{fmt(yr.expenses)}</td>
-                      <td className={`py-1.5 px-2 text-right font-mono ${yr.cashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>{fmt(yr.cashFlow)}</td>
-                      <td className="py-1.5 px-2 text-right font-mono">{fmt(yr.propertyValue)}</td>
-                      <td className="py-1.5 pl-2 text-right font-mono text-blue-400">{fmt(yr.equity)}</td>
+                    <tr key={yr.year} className="border-b border-sand/20 hover:bg-parchment/30 transition-colors">
+                      <td className="py-3 px-6 font-mono text-charcoal">{yr.year}</td>
+                      <td className="py-3 px-4 text-right font-mono text-emerald-dark">{fmt(yr.revenue)}</td>
+                      <td className="py-3 px-4 text-right font-mono text-coral">{fmt(yr.expenses)}</td>
+                      <td className={`py-3 px-4 text-right font-mono font-medium ${yr.cashFlow >= 0 ? 'text-emerald-dark' : 'text-coral'}`}>
+                        {fmt(yr.cashFlow)}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-charcoal">{fmt(yr.propertyValue)}</td>
+                      <td className="py-3 px-6 text-right font-mono text-ink font-medium">{fmt(yr.equity)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -204,20 +234,24 @@ export default function PropertyDetail({ id }: { id: number }) {
       )}
 
       {tab === 'overview' && !c && (
-        <div className="text-center py-12 text-scout-muted">
-          <p>No calculations available yet.</p>
-          <button onClick={() => setTab('financials')} className="text-scout-accent hover:underline text-sm mt-2">
-            Add financial data
+        <div className="text-center py-16 bg-white/50 border border-dashed border-sand rounded-lg">
+          <div className="font-serif text-xl text-ink mb-2">No calculations yet</div>
+          <p className="text-stone text-sm mb-4">Add financial data to see investment metrics.</p>
+          <button onClick={() => setTab('financials')}
+            className="text-emerald hover:text-emerald-dark font-medium text-sm">
+            Add financials &rarr;
           </button>
         </div>
       )}
 
+      {/* Financials Tab */}
       {tab === 'financials' && (
         <div className="space-y-6 max-w-2xl">
-          {/* Acquisition */}
-          <section className="bg-scout-surface border border-scout-border rounded-lg p-4">
-            <h3 className="text-sm font-semibold mb-4">Acquisition Costs</h3>
-            <div className="space-y-3">
+          <section className="bg-white border border-sand/50 rounded-lg shadow-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-sand/40">
+              <h3 className="font-serif text-lg text-ink">Acquisition Costs</h3>
+            </div>
+            <div className="px-6 py-5 space-y-4">
               <CurrencyInput label="Purchase Price" value={Number(acquisition?.purchase_price) || 0}
                 onChange={(v) => saveField(() => api.updateAcquisition(id, { purchase_price: v }))} />
               <CurrencyInput label="Closing Costs" value={Number(acquisition?.closing_costs) || 0}
@@ -227,15 +261,20 @@ export default function PropertyDetail({ id }: { id: number }) {
             </div>
           </section>
 
-          {/* Financing */}
-          <section className="bg-scout-surface border border-scout-border rounded-lg p-4">
-            <h3 className="text-sm font-semibold mb-4">Financing</h3>
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 cursor-pointer">
+          <section className="bg-white border border-sand/50 rounded-lg shadow-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-sand/40">
+              <h3 className="font-serif text-lg text-ink">Financing</h3>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all
+                  ${financing?.is_cash_purchase ? 'bg-emerald border-emerald text-white' : 'border-sand group-hover:border-stone'}`}>
+                  {financing?.is_cash_purchase && <span className="text-xs">&#10003;</span>}
+                </div>
                 <input type="checkbox" checked={financing?.is_cash_purchase || false}
                   onChange={(e) => saveField(() => api.updateFinancing(id, { is_cash_purchase: e.target.checked }))}
-                  className="rounded border-scout-border" />
-                <span className="text-sm">Cash Purchase</span>
+                  className="hidden" />
+                <span className="text-sm text-ink font-medium">Cash Purchase</span>
               </label>
               {!financing?.is_cash_purchase && (
                 <>
@@ -244,10 +283,10 @@ export default function PropertyDetail({ id }: { id: number }) {
                   <PercentInput label="Interest Rate" value={Number(financing?.interest_rate) || 7}
                     onChange={(v) => saveField(() => api.updateFinancing(id, { interest_rate: v }))} step={0.125} />
                   <div>
-                    <label className="block text-xs text-scout-muted mb-1">Loan Term</label>
+                    <label className="field-label">Loan Term</label>
                     <select value={financing?.loan_term_years || 30}
                       onChange={(e) => saveField(() => api.updateFinancing(id, { loan_term_years: parseInt(e.target.value) }))}
-                      className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm">
+                      className="input-field">
                       <option value={15}>15 Years</option><option value={20}>20 Years</option>
                       <option value={25}>25 Years</option><option value={30}>30 Years</option>
                     </select>
@@ -257,70 +296,71 @@ export default function PropertyDetail({ id }: { id: number }) {
             </div>
           </section>
 
-          {/* Income */}
-          <section className="bg-scout-surface border border-scout-border rounded-lg p-4">
-            <h3 className="text-sm font-semibold mb-4">Rental Income</h3>
-            <div className="space-y-3">
+          <section className="bg-white border border-sand/50 rounded-lg shadow-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-sand/40">
+              <h3 className="font-serif text-lg text-ink">Rental Income</h3>
+            </div>
+            <div className="px-6 py-5 space-y-4">
               <CurrencyInput label="Nightly Rate" value={Number(income?.nightly_rate) || 0}
                 onChange={(v) => saveField(() => api.updateIncome(id, { nightly_rate: v }))} />
               <PercentInput label="Occupancy" value={Number(income?.occupancy_pct) || 65}
                 onChange={(v) => saveField(() => api.updateIncome(id, { occupancy_pct: v }))} step={5} />
               <div>
-                <label className="block text-xs text-scout-muted mb-1">Avg Stay (Nights)</label>
+                <label className="field-label">Avg Stay (Nights)</label>
                 <input type="number" value={Number(income?.avg_stay_nights) || 3}
                   onChange={(e) => saveField(() => api.updateIncome(id, { avg_stay_nights: parseFloat(e.target.value) || 3 }))}
-                  step={0.5} min={1}
-                  className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm font-mono" />
+                  step={0.5} min={1} className="input-mono" />
               </div>
             </div>
           </section>
 
-          {/* Expenses */}
-          <section className="bg-scout-surface border border-scout-border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold">Operating Expenses</h3>
+          <section className="bg-white border border-sand/50 rounded-lg shadow-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-sand/40 flex items-center justify-between">
+              <h3 className="font-serif text-lg text-ink">Operating Expenses</h3>
               <button onClick={async () => {
                 await api.createExpense(id, { category: 'other', label: 'New Expense', amount: 0, frequency: 'monthly' });
                 refresh();
-              }} className="text-scout-accent text-xs hover:underline">
-                + Add Expense
+              }} className="text-emerald text-xs font-semibold uppercase tracking-wider hover:text-emerald-dark transition-colors">
+                + Add
               </button>
             </div>
-            {expenses.length === 0 ? (
-              <p className="text-xs text-scout-muted italic">No expenses added yet</p>
-            ) : (
-              <div className="space-y-2">
-                {expenses.map((exp) => (
-                  <div key={exp.id} className="grid grid-cols-12 gap-2 items-center">
-                    <input value={exp.label} onChange={(e) => saveField(() => api.updateExpense(id, exp.id, { label: e.target.value }))}
-                      className="col-span-4 bg-scout-bg border border-scout-border rounded px-2 py-1.5 text-sm text-white" />
-                    <div className="col-span-3 relative">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-scout-muted text-xs">$</span>
-                      <input type="number" value={Number(exp.amount) || ''} onChange={(e) =>
-                        saveField(() => api.updateExpense(id, exp.id, { amount: parseFloat(e.target.value) || 0 }))}
-                        className="w-full bg-scout-bg border border-scout-border rounded pl-5 pr-2 py-1.5 text-sm font-mono text-white" />
+            <div className="px-6 py-5">
+              {expenses.length === 0 ? (
+                <p className="text-sm text-stone italic">No expenses added yet</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {expenses.map((exp) => (
+                    <div key={exp.id} className="grid grid-cols-12 gap-2 items-center">
+                      <input value={exp.label}
+                        onChange={(e) => saveField(() => api.updateExpense(id, exp.id, { label: e.target.value }))}
+                        className="col-span-4 input-field !py-1.5 text-xs" />
+                      <div className="col-span-3 relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone font-mono text-xs">$</span>
+                        <input type="number" value={Number(exp.amount) || ''}
+                          onChange={(e) => saveField(() => api.updateExpense(id, exp.id, { amount: parseFloat(e.target.value) || 0 }))}
+                          className="w-full input-mono !py-1.5 pl-6 text-xs" />
+                      </div>
+                      <select value={exp.frequency}
+                        onChange={(e) => saveField(() => api.updateExpense(id, exp.id, { frequency: e.target.value as ExpenseFrequency }))}
+                        className="col-span-3 input-field !py-1.5 text-xs">
+                        <option value="monthly">Monthly</option>
+                        <option value="annual">Annual</option>
+                        <option value="per_turnover">Per Turnover</option>
+                      </select>
+                      <button onClick={async () => { await api.deleteExpense(id, exp.id); refresh(); }}
+                        className="col-span-2 text-coral/60 hover:text-coral text-xs text-center font-medium transition-colors">
+                        Remove
+                      </button>
                     </div>
-                    <select value={exp.frequency} onChange={(e) =>
-                      saveField(() => api.updateExpense(id, exp.id, { frequency: e.target.value as ExpenseFrequency }))}
-                      className="col-span-3 bg-scout-bg border border-scout-border rounded px-2 py-1.5 text-sm text-white">
-                      <option value="monthly">Monthly</option>
-                      <option value="annual">Annual</option>
-                      <option value="per_turnover">Per Turnover</option>
-                    </select>
-                    <button onClick={async () => { await api.deleteExpense(id, exp.id); refresh(); }}
-                      className="col-span-2 text-red-400 hover:text-red-300 text-xs text-center">
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </section>
-
-          {saving && <div className="text-xs text-scout-muted">Saving...</div>}
         </div>
       )}
 
+      {/* Documents Tab */}
       {tab === 'documents' && (
         <DocumentUploadZone propertyId={id} onExtracted={refresh} />
       )}

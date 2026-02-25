@@ -5,22 +5,28 @@ interface MetricBadgeProps {
 }
 
 export default function MetricBadge({ value, thresholds, format }: MetricBadgeProps) {
-  let color: string;
+  let dotColor: string;
+  let textColor: string;
 
   if (thresholds.invert) {
-    // Lower is better (e.g., break-even occupancy)
-    color = value < thresholds.green ? 'bg-green-500/20 text-green-400'
-      : value < thresholds.yellow ? 'bg-yellow-500/20 text-yellow-400'
-      : 'bg-red-500/20 text-red-400';
+    dotColor = value < thresholds.green ? 'bg-emerald'
+      : value < thresholds.yellow ? 'bg-gold'
+      : 'bg-coral';
+    textColor = value < thresholds.green ? 'text-emerald-dark'
+      : value < thresholds.yellow ? 'text-gold-dark'
+      : 'text-coral';
   } else {
-    // Higher is better (e.g., cash on cash)
-    color = value > thresholds.green ? 'bg-green-500/20 text-green-400'
-      : value > thresholds.yellow ? 'bg-yellow-500/20 text-yellow-400'
-      : 'bg-red-500/20 text-red-400';
+    dotColor = value > thresholds.green ? 'bg-emerald'
+      : value > thresholds.yellow ? 'bg-gold'
+      : 'bg-coral';
+    textColor = value > thresholds.green ? 'text-emerald-dark'
+      : value > thresholds.yellow ? 'text-gold-dark'
+      : 'text-coral';
   }
 
   return (
-    <span className={`${color} px-2 py-0.5 rounded text-xs font-mono font-medium`}>
+    <span className={`inline-flex items-center gap-1.5 font-mono text-sm font-medium ${textColor}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
       {format(value)}
     </span>
   );

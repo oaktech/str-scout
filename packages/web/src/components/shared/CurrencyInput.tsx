@@ -8,16 +8,15 @@ interface CurrencyInputProps {
 export default function CurrencyInput({ label, value, onChange, placeholder }: CurrencyInputProps) {
   return (
     <div>
-      <label className="block text-xs text-scout-muted mb-1">{label}</label>
+      <label className="field-label">{label}</label>
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-scout-muted">$</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone font-mono text-sm">$</span>
         <input
           type="number"
           value={value || ''}
           onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
           placeholder={placeholder}
-          className="w-full bg-scout-bg border border-scout-border rounded-lg pl-7 pr-3 py-2 text-white
-                     font-mono text-sm focus:outline-none focus:border-scout-accent"
+          className="input-mono pl-7"
         />
       </div>
     </div>

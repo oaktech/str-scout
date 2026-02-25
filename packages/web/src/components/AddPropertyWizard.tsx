@@ -27,6 +27,13 @@ const DEFAULT_EXPENSES: { category: string; label: string; amount: number; frequ
 
 type Step = 'basics' | 'acquisition' | 'financing' | 'income' | 'expenses';
 const STEPS: Step[] = ['basics', 'acquisition', 'financing', 'income', 'expenses'];
+const STEP_LABELS: Record<Step, string> = {
+  basics: 'Property',
+  acquisition: 'Acquisition',
+  financing: 'Financing',
+  income: 'Income',
+  expenses: 'Expenses',
+};
 
 export default function AddPropertyWizard() {
   const setPage = useStore((s) => s.setPage);
@@ -34,7 +41,6 @@ export default function AddPropertyWizard() {
   const [step, setStep] = useState<Step>('basics');
   const [saving, setSaving] = useState(false);
 
-  // Basics
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
@@ -42,24 +48,16 @@ export default function AddPropertyWizard() {
   const [zip, setZip] = useState('');
   const [propertyType, setPropertyType] = useState<PropertyType>('single_family');
   const [unitCount, setUnitCount] = useState(1);
-
-  // Acquisition
   const [purchasePrice, setPurchasePrice] = useState(0);
   const [closingCosts, setClosingCosts] = useState(0);
   const [renovation, setRenovation] = useState(0);
-
-  // Financing
   const [downPaymentPct, setDownPaymentPct] = useState(20);
   const [interestRate, setInterestRate] = useState(7);
   const [loanTermYears, setLoanTermYears] = useState(30);
   const [isCashPurchase, setIsCashPurchase] = useState(false);
-
-  // Income
   const [nightlyRate, setNightlyRate] = useState(0);
   const [occupancyPct, setOccupancyPct] = useState(65);
   const [avgStayNights, setAvgStayNights] = useState(3);
-
-  // Expenses
   const [expenses, setExpenses] = useState(DEFAULT_EXPENSES.map((e) => ({ ...e })));
 
   const stepIndex = STEPS.indexOf(step);
@@ -83,19 +81,14 @@ export default function AddPropertyWizard() {
         name, address, city, state, zip, property_type: propertyType, unit_count: unitCount,
       });
       const id = property.id;
-
       await Promise.all([
         api.updateAcquisition(id, { purchase_price: purchasePrice, closing_costs: closingCosts, renovation }),
         api.updateFinancing(id, { down_payment_pct: downPaymentPct, interest_rate: interestRate, loan_term_years: loanTermYears, is_cash_purchase: isCashPurchase }),
         api.updateIncome(id, { nightly_rate: nightlyRate, occupancy_pct: occupancyPct, avg_stay_nights: avgStayNights }),
       ]);
-
       for (const exp of expenses) {
-        if (exp.amount > 0) {
-          await api.createExpense(id, exp);
-        }
+        if (exp.amount > 0) await api.createExpense(id, exp);
       }
-
       showToast('Property created!', 'success');
       setPage({ name: 'property', id });
     } catch (err: any) {
@@ -106,102 +99,125 @@ export default function AddPropertyWizard() {
   };
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Add Property</h2>
+    <div className="animate-fade-in max-w-2xl">
+      {/* Header */}
+      <div className="mb-8">
+        <button onClick={() => setPage({ name: 'dashboard' })} className="text-stone hover:text-ink text-xs font-medium mb-3 block transition-colors">
+          &larr; Back to Portfolio
+        </button>
+        <h2 className="font-serif text-3xl text-ink tracking-tight">New Property</h2>
+        <p className="font-serif italic text-stone mt-0.5">Step {stepIndex + 1} of {STEPS.length}</p>
+      </div>
 
-      {/* Step indicator */}
-      <div className="flex gap-1 mb-8">
+      {/* Step indicator — connected dots */}
+      <div className="flex items-center mb-10">
         {STEPS.map((s, i) => (
-          <div key={s} className="flex-1">
-            <div className={`h-1 rounded-full ${i <= stepIndex ? 'bg-scout-accent' : 'bg-scout-border'}`} />
-            <div className={`text-xs mt-1 capitalize ${i === stepIndex ? 'text-scout-accent' : 'text-scout-muted'}`}>
-              {s}
-            </div>
+          <div key={s} className="flex items-center flex-1 last:flex-none">
+            <button
+              onClick={() => i < stepIndex && setStep(STEPS[i])}
+              className="flex flex-col items-center relative group"
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-mono font-medium
+                    transition-all duration-300 border-2
+                    ${i < stepIndex ? 'bg-emerald border-emerald text-white' :
+                      i === stepIndex ? 'bg-white border-emerald text-emerald shadow-card' :
+                      'bg-parchment border-sand text-stone'}`}>
+                {i < stepIndex ? '\u2713' : i + 1}
+              </div>
+              <span className={`text-[10px] font-medium uppercase tracking-wider mt-2 transition-colors
+                    ${i === stepIndex ? 'text-emerald' : i < stepIndex ? 'text-ink' : 'text-stone'}`}>
+                {STEP_LABELS[s]}
+              </span>
+            </button>
+            {i < STEPS.length - 1 && (
+              <div className={`flex-1 h-px mx-2 transition-colors ${i < stepIndex ? 'bg-emerald' : 'bg-sand'}`} />
+            )}
           </div>
         ))}
       </div>
 
       {/* Step content */}
-      <div className="bg-scout-surface border border-scout-border rounded-lg p-6 mb-6">
+      <div className="bg-white border border-sand/50 rounded-lg p-7 shadow-card mb-8 animate-scale-in" key={step}>
         {step === 'basics' && (
-          <div className="space-y-4 max-w-lg">
+          <div className="space-y-5">
             <div>
-              <label className="block text-xs text-scout-muted mb-1">Property Name *</label>
-              <input
-                value={name} onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Mountain Cabin Retreat"
-                className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-scout-accent"
-              />
+              <label className="field-label">Property Name</label>
+              <input value={name} onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Mountain Cabin Retreat" className="input-field" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="field-label">Address</label>
+              <input value={address} onChange={(e) => setAddress(e.target.value)} className="input-field" />
+            </div>
+            <div className="grid grid-cols-6 gap-3">
+              <div className="col-span-3">
+                <label className="field-label">City</label>
+                <input value={city} onChange={(e) => setCity(e.target.value)} className="input-field" />
+              </div>
+              <div className="col-span-1">
+                <label className="field-label">State</label>
+                <input value={state} onChange={(e) => setState(e.target.value)} maxLength={2}
+                  className="input-field uppercase" />
+              </div>
               <div className="col-span-2">
-                <label className="block text-xs text-scout-muted mb-1">Address</label>
-                <input value={address} onChange={(e) => setAddress(e.target.value)}
-                  className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-scout-accent" />
-              </div>
-              <div>
-                <label className="block text-xs text-scout-muted mb-1">City</label>
-                <input value={city} onChange={(e) => setCity(e.target.value)}
-                  className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-scout-accent" />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs text-scout-muted mb-1">State</label>
-                  <input value={state} onChange={(e) => setState(e.target.value)} maxLength={2}
-                    className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-scout-accent" />
-                </div>
-                <div>
-                  <label className="block text-xs text-scout-muted mb-1">Zip</label>
-                  <input value={zip} onChange={(e) => setZip(e.target.value)}
-                    className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-scout-accent" />
-                </div>
+                <label className="field-label">Zip</label>
+                <input value={zip} onChange={(e) => setZip(e.target.value)} className="input-field" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-scout-muted mb-1">Type</label>
+                <label className="field-label">Type</label>
                 <select value={propertyType} onChange={(e) => setPropertyType(e.target.value as PropertyType)}
-                  className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-scout-accent">
+                  className="input-field">
                   {PROPERTY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-scout-muted mb-1">Units</label>
-                <input type="number" value={unitCount} onChange={(e) => setUnitCount(parseInt(e.target.value) || 1)} min={1}
-                  className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-scout-accent" />
+                <label className="field-label">Unit Count</label>
+                <input type="number" value={unitCount} onChange={(e) => setUnitCount(parseInt(e.target.value) || 1)}
+                  min={1} className="input-mono" />
               </div>
             </div>
           </div>
         )}
 
         {step === 'acquisition' && (
-          <div className="space-y-4 max-w-lg">
+          <div className="space-y-5">
             <CurrencyInput label="Purchase Price" value={purchasePrice} onChange={setPurchasePrice} />
             <CurrencyInput label="Closing Costs" value={closingCosts} onChange={setClosingCosts} />
             <CurrencyInput label="Renovation / Furnishing" value={renovation} onChange={setRenovation} />
             {purchasePrice > 0 && (
-              <div className="text-xs text-scout-muted border-t border-scout-border pt-3">
-                Total Investment: <span className="text-white font-mono">${(purchasePrice + closingCosts + renovation).toLocaleString()}</span>
+              <div className="pt-4 border-t border-sand/50">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs text-stone font-medium">Total Investment</span>
+                  <span className="font-mono font-medium text-lg text-ink">
+                    ${(purchasePrice + closingCosts + renovation).toLocaleString()}
+                  </span>
+                </div>
               </div>
             )}
           </div>
         )}
 
         {step === 'financing' && (
-          <div className="space-y-4 max-w-lg">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <div className="space-y-5">
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all
+                ${isCashPurchase ? 'bg-emerald border-emerald text-white' : 'border-sand group-hover:border-stone'}`}>
+                {isCashPurchase && <span className="text-xs">&#10003;</span>}
+              </div>
               <input type="checkbox" checked={isCashPurchase} onChange={(e) => setIsCashPurchase(e.target.checked)}
-                className="rounded border-scout-border" />
-              <span className="text-sm">Cash Purchase (no loan)</span>
+                className="hidden" />
+              <span className="text-sm text-ink font-medium">Cash Purchase <span className="text-stone font-normal">(no loan)</span></span>
             </label>
             {!isCashPurchase && (
               <>
                 <PercentInput label="Down Payment" value={downPaymentPct} onChange={setDownPaymentPct} step={5} />
                 <PercentInput label="Interest Rate" value={interestRate} onChange={setInterestRate} step={0.125} />
                 <div>
-                  <label className="block text-xs text-scout-muted mb-1">Loan Term (Years)</label>
+                  <label className="field-label">Loan Term</label>
                   <select value={loanTermYears} onChange={(e) => setLoanTermYears(parseInt(e.target.value))}
-                    className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-scout-accent">
+                    className="input-field">
                     <option value={15}>15 Years</option>
                     <option value={20}>20 Years</option>
                     <option value={25}>25 Years</option>
@@ -209,9 +225,15 @@ export default function AddPropertyWizard() {
                   </select>
                 </div>
                 {purchasePrice > 0 && (
-                  <div className="text-xs text-scout-muted border-t border-scout-border pt-3 space-y-1">
-                    <div>Down Payment: <span className="text-white font-mono">${Math.round(purchasePrice * downPaymentPct / 100).toLocaleString()}</span></div>
-                    <div>Loan Amount: <span className="text-white font-mono">${Math.round(purchasePrice * (1 - downPaymentPct / 100)).toLocaleString()}</span></div>
+                  <div className="pt-4 border-t border-sand/50 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-stone">Down Payment</span>
+                      <span className="font-mono text-ink">${Math.round(purchasePrice * downPaymentPct / 100).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-stone">Loan Amount</span>
+                      <span className="font-mono text-ink">${Math.round(purchasePrice * (1 - downPaymentPct / 100)).toLocaleString()}</span>
+                    </div>
                   </div>
                 )}
               </>
@@ -220,78 +242,88 @@ export default function AddPropertyWizard() {
         )}
 
         {step === 'income' && (
-          <div className="space-y-4 max-w-lg">
+          <div className="space-y-5">
             <CurrencyInput label="Nightly Rate" value={nightlyRate} onChange={setNightlyRate} />
             <PercentInput label="Expected Occupancy" value={occupancyPct} onChange={setOccupancyPct} step={5} />
             <div>
-              <label className="block text-xs text-scout-muted mb-1">Average Stay (Nights)</label>
-              <input type="number" value={avgStayNights} onChange={(e) => setAvgStayNights(parseFloat(e.target.value) || 3)} step={0.5} min={1}
-                className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-scout-accent" />
+              <label className="field-label">Average Stay (Nights)</label>
+              <input type="number" value={avgStayNights} onChange={(e) => setAvgStayNights(parseFloat(e.target.value) || 3)}
+                step={0.5} min={1} className="input-mono" />
             </div>
             {nightlyRate > 0 && (
-              <div className="text-xs text-scout-muted border-t border-scout-border pt-3 space-y-1">
-                <div>Monthly Revenue: <span className="text-white font-mono">${Math.round(nightlyRate * 30 * occupancyPct / 100).toLocaleString()}</span></div>
-                <div>Annual Revenue: <span className="text-white font-mono">${Math.round(nightlyRate * 30 * occupancyPct / 100 * 12).toLocaleString()}</span></div>
+              <div className="pt-4 border-t border-sand/50 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-stone">Monthly Revenue</span>
+                  <span className="font-mono text-emerald-dark">${Math.round(nightlyRate * 30 * occupancyPct / 100).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-stone">Annual Revenue</span>
+                  <span className="font-mono text-emerald-dark">${Math.round(nightlyRate * 30 * occupancyPct / 100 * 12).toLocaleString()}</span>
+                </div>
               </div>
             )}
           </div>
         )}
 
         {step === 'expenses' && (
-          <div className="space-y-3">
-            <p className="text-xs text-scout-muted mb-4">
-              Enter your expected operating expenses. Use "per turnover" for costs that occur each guest checkout (e.g., cleaning).
+          <div className="space-y-4">
+            <p className="text-sm text-stone">
+              Costs that occur each guest checkout (cleaning, laundry) should use <em className="font-serif">per turnover</em>.
             </p>
-            {expenses.map((exp, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 items-end">
-                <div className="col-span-4">
-                  {i === 0 && <label className="block text-xs text-scout-muted mb-1">Category</label>}
-                  <input value={exp.label} readOnly
-                    className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm" />
+            <div className="space-y-2.5">
+              {expenses.map((exp, i) => (
+                <div key={i} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-4">
+                    {i === 0 && <label className="field-label">Category</label>}
+                    <input value={exp.label} readOnly className="input-field bg-parchment/50 text-charcoal" />
+                  </div>
+                  <div className="col-span-4">
+                    {i === 0 && <label className="field-label">Amount</label>}
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone font-mono text-xs">$</span>
+                      <input type="number" value={exp.amount || ''} onChange={(e) => {
+                        const updated = [...expenses];
+                        updated[i] = { ...exp, amount: parseFloat(e.target.value) || 0 };
+                        setExpenses(updated);
+                      }} className="input-mono pl-7" />
+                    </div>
+                  </div>
+                  <div className="col-span-4">
+                    {i === 0 && <label className="field-label">Frequency</label>}
+                    <select value={exp.frequency} onChange={(e) => {
+                      const updated = [...expenses];
+                      updated[i] = { ...exp, frequency: e.target.value as ExpenseFrequency };
+                      setExpenses(updated);
+                    }} className="input-field">
+                      <option value="monthly">Monthly</option>
+                      <option value="annual">Annual</option>
+                      <option value="per_turnover">Per Turnover</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="col-span-4">
-                  {i === 0 && <label className="block text-xs text-scout-muted mb-1">Amount ($)</label>}
-                  <input type="number" value={exp.amount || ''} onChange={(e) => {
-                    const updated = [...expenses];
-                    updated[i] = { ...exp, amount: parseFloat(e.target.value) || 0 };
-                    setExpenses(updated);
-                  }}
-                    className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-scout-accent" />
-                </div>
-                <div className="col-span-4">
-                  {i === 0 && <label className="block text-xs text-scout-muted mb-1">Frequency</label>}
-                  <select value={exp.frequency} onChange={(e) => {
-                    const updated = [...expenses];
-                    updated[i] = { ...exp, frequency: e.target.value as ExpenseFrequency };
-                    setExpenses(updated);
-                  }}
-                    className="w-full bg-scout-bg border border-scout-border rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-scout-accent">
-                    <option value="monthly">Monthly</option>
-                    <option value="annual">Annual</option>
-                    <option value="per_turnover">Per Turnover</option>
-                  </select>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Navigation buttons */}
-      <div className="flex justify-between">
+      {/* Navigation */}
+      <div className="flex justify-between items-center">
         <button onClick={prev} disabled={!canPrev}
-          className="px-4 py-2 rounded-lg text-sm font-medium text-scout-muted hover:text-white disabled:opacity-30 disabled:cursor-not-allowed">
-          Back
+          className="text-sm text-stone hover:text-ink font-medium disabled:opacity-0 transition-all">
+          &larr; Back
         </button>
         {isLast ? (
           <button onClick={save} disabled={saving}
-            className="bg-scout-accent hover:bg-scout-accent/90 text-white px-6 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors">
+            className="bg-emerald hover:bg-emerald-dark text-white px-7 py-2.5 rounded-md text-sm font-semibold
+                       disabled:opacity-50 transition-colors shadow-card">
             {saving ? 'Creating...' : 'Create Property'}
           </button>
         ) : (
           <button onClick={next}
-            className="bg-scout-accent hover:bg-scout-accent/90 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
-            Next
+            className="bg-ink hover:bg-espresso text-cream px-7 py-2.5 rounded-md text-sm font-medium
+                       transition-colors shadow-card">
+            Continue &rarr;
           </button>
         )}
       </div>

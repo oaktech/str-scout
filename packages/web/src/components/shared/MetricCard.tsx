@@ -6,17 +6,25 @@ interface MetricCardProps {
 }
 
 export default function MetricCard({ label, value, subtext, color = 'default' }: MetricCardProps) {
-  const colorClass =
-    color === 'green' ? 'text-green-400' :
-    color === 'yellow' ? 'text-yellow-400' :
-    color === 'red' ? 'text-red-400' :
-    'text-white';
+  const borderClass =
+    color === 'green'  ? 'metric-positive' :
+    color === 'yellow' ? 'metric-caution' :
+    color === 'red'    ? 'metric-negative' :
+    'metric-neutral';
+
+  const valueColor =
+    color === 'green'  ? 'text-emerald-dark' :
+    color === 'yellow' ? 'text-gold-dark' :
+    color === 'red'    ? 'text-coral' :
+    'text-ink';
 
   return (
-    <div className="bg-scout-surface border border-scout-border rounded-lg p-4">
-      <div className="text-xs text-scout-muted uppercase tracking-wide mb-1">{label}</div>
-      <div className={`text-xl font-semibold font-mono ${colorClass}`}>{value}</div>
-      {subtext && <div className="text-xs text-scout-muted mt-1">{subtext}</div>}
+    <div className={`bg-white rounded-md p-4 shadow-card ${borderClass} animate-slide-up`}>
+      <div className="field-label !mb-2">{label}</div>
+      <div className={`text-[22px] font-mono font-medium tracking-tight ${valueColor}`}>
+        {value}
+      </div>
+      {subtext && <div className="text-xs text-stone mt-1.5">{subtext}</div>}
     </div>
   );
 }

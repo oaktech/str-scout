@@ -5,28 +5,22 @@ interface MetricBadgeProps {
 }
 
 export default function MetricBadge({ value, thresholds, format }: MetricBadgeProps) {
-  let dotColor: string;
-  let textColor: string;
+  let color: string;
 
   if (thresholds.invert) {
-    dotColor = value < thresholds.green ? 'bg-emerald'
-      : value < thresholds.yellow ? 'bg-gold'
-      : 'bg-coral';
-    textColor = value < thresholds.green ? 'text-emerald-dark'
-      : value < thresholds.yellow ? 'text-gold-dark'
-      : 'text-coral';
+    // Lower is better (e.g., break-even occupancy)
+    color = value < thresholds.green ? 'bg-green-500/20 text-green-400'
+      : value < thresholds.yellow ? 'bg-yellow-500/20 text-yellow-400'
+      : 'bg-red-500/20 text-red-400';
   } else {
-    dotColor = value > thresholds.green ? 'bg-emerald'
-      : value > thresholds.yellow ? 'bg-gold'
-      : 'bg-coral';
-    textColor = value > thresholds.green ? 'text-emerald-dark'
-      : value > thresholds.yellow ? 'text-gold-dark'
-      : 'text-coral';
+    // Higher is better (e.g., cash on cash)
+    color = value > thresholds.green ? 'bg-green-500/20 text-green-400'
+      : value > thresholds.yellow ? 'bg-yellow-500/20 text-yellow-400'
+      : 'bg-red-500/20 text-red-400';
   }
 
   return (
-    <span className={`inline-flex items-center gap-1.5 font-mono text-sm font-medium ${textColor}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+    <span className={`${color} px-2 py-0.5 rounded text-xs font-mono font-medium`}>
       {format(value)}
     </span>
   );

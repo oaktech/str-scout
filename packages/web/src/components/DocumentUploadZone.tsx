@@ -34,10 +34,13 @@ export default function DocumentUploadZone({ propertyId, onExtracted }: Props) {
       for (const file of Array.from(files)) {
         const doc = await api.uploadDocument(propertyId, file);
         showToast(`Uploaded ${file.name}`, 'success');
+
+        // Auto-trigger extraction
         setExtracting(doc.id);
         try {
           const result = await api.triggerExtraction(doc.id);
           showToast(`Extracted ${result.extracted} fields`, 'success');
+          // Open review modal
           const fields = await api.getExtracted(doc.id);
           setReviewDoc({ docId: doc.id, fields });
         } catch (err: any) {
@@ -95,10 +98,8 @@ export default function DocumentUploadZone({ propertyId, onExtracted }: Props) {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-lg p-12 text-center transition-all duration-200 cursor-pointer
-          ${dragOver
-            ? 'border-emerald bg-emerald-light/50 scale-[1.01]'
-            : 'border-sand hover:border-stone bg-white/50'}`}
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
+          ${dragOver ? 'border-scout-accent bg-scout-accent/5' : 'border-scout-border hover:border-scout-accent/50'}`}
         onClick={() => {
           const input = document.createElement('input');
           input.type = 'file';
@@ -109,24 +110,19 @@ export default function DocumentUploadZone({ propertyId, onExtracted }: Props) {
         }}
       >
         {uploading ? (
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-2">
             <LoadingSpinner />
-            <span className="text-sm text-stone">Uploading...</span>
+            <span className="text-sm text-scout-muted">Uploading...</span>
           </div>
         ) : extracting !== null ? (
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-2">
             <LoadingSpinner />
-            <span className="text-sm text-stone font-serif italic">Extracting data with AI...</span>
+            <span className="text-sm text-scout-muted">Extracting data with AI...</span>
           </div>
         ) : (
           <>
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-parchment flex items-center justify-center">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#B8AFA3" strokeWidth="1.5">
-                <path d="M10 3v10M6 7l4-4 4 4" /><path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" />
-              </svg>
-            </div>
-            <p className="text-charcoal font-medium mb-1">Drop property documents here</p>
-            <p className="text-xs text-stone">PDF, JPEG, PNG, WebP &mdash; max 10 MB</p>
+            <p className="text-scout-muted mb-1">Drag & drop property documents here</p>
+            <p className="text-xs text-scout-muted">PDF, JPEG, PNG, WebP (max 10MB)</p>
           </>
         )}
       </div>
@@ -135,38 +131,39 @@ export default function DocumentUploadZone({ propertyId, onExtracted }: Props) {
       {loading ? (
         <div className="flex justify-center py-8"><LoadingSpinner /></div>
       ) : docs.length > 0 ? (
-        <div className="mt-8">
-          <div className="flex items-baseline gap-3 mb-4">
-            <h3 className="font-serif text-lg text-ink">Documents</h3>
-            <div className="flex-1 border-t border-sand/60 translate-y-[-2px]" />
-          </div>
-          <div className="space-y-2">
-            {docs.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between bg-white border border-sand/40 rounded-md px-5 py-3 shadow-card">
-                <div>
-                  <p className="text-sm text-ink font-medium">{doc.original_name}</p>
-                  <p className="text-xs text-stone mt-0.5">
-                    {(doc.size_bytes / 1024).toFixed(0)} KB &middot; {new Date(doc.uploaded_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => handleExtractExisting(doc.id)} disabled={extracting === doc.id}
-                    className="text-emerald text-xs font-semibold uppercase tracking-wider hover:text-emerald-dark disabled:opacity-50 transition-colors">
-                    {extracting === doc.id ? 'Extracting...' : 'Extract'}
-                  </button>
-                  <button onClick={() => handleDelete(doc.id)}
-                    className="text-coral/60 text-xs font-medium hover:text-coral transition-colors">
-                    Delete
-                  </button>
-                </div>
+        <div className="mt-6 space-y-2">
+          <h3 className="text-sm font-semibold mb-3">Uploaded Documents</h3>
+          {docs.map((doc) => (
+            <div key={doc.id} className="flex items-center justify-between bg-scout-surface border border-scout-border rounded-lg p-3">
+              <div>
+                <p className="text-sm text-white">{doc.original_name}</p>
+                <p className="text-xs text-scout-muted">
+                  {(doc.size_bytes / 1024).toFixed(0)} KB &middot; {new Date(doc.uploaded_at).toLocaleDateString()}
+                </p>
               </div>
-            ))}
-          </div>
+              <div className="flex gap-2">
+                <button onClick={() => handleExtractExisting(doc.id)}
+                  disabled={extracting === doc.id}
+                  className="text-scout-accent text-xs hover:underline disabled:opacity-50">
+                  {extracting === doc.id ? 'Extracting...' : 'Extract'}
+                </button>
+                <button onClick={() => handleDelete(doc.id)}
+                  className="text-red-400 text-xs hover:underline">
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       ) : null}
 
+      {/* Extraction review modal */}
       {reviewDoc && (
-        <ExtractionReviewModal fields={reviewDoc.fields} onApply={handleApply} onClose={() => setReviewDoc(null)} />
+        <ExtractionReviewModal
+          fields={reviewDoc.fields}
+          onApply={handleApply}
+          onClose={() => setReviewDoc(null)}
+        />
       )}
     </div>
   );

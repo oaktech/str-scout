@@ -46,6 +46,7 @@ export default function ComparisonView() {
   useEffect(() => {
     if (compareIds.length === 0) return;
     setLoading(true);
+
     Promise.all(
       compareIds.map(async (id) => {
         const [property, metrics] = await Promise.all([
@@ -54,17 +55,18 @@ export default function ComparisonView() {
         ]);
         return { property, metrics };
       }),
-    ).then(setData).finally(() => setLoading(false));
+    )
+      .then(setData)
+      .finally(() => setLoading(false));
   }, [compareIds]);
 
   if (compareIds.length === 0) {
     return (
-      <div className="text-center py-20 animate-fade-in">
-        <h2 className="font-serif text-3xl text-ink mb-2">Compare Properties</h2>
-        <p className="text-stone mb-5 font-serif italic">Select 2&ndash;3 properties from the portfolio to compare side-by-side.</p>
-        <button onClick={() => setPage({ name: 'dashboard' })}
-          className="text-emerald hover:text-emerald-dark font-medium text-sm transition-colors">
-          Go to Portfolio &rarr;
+      <div className="text-center py-16">
+        <h2 className="text-2xl font-bold mb-3">Compare Properties</h2>
+        <p className="text-scout-muted mb-4">Select 2-3 properties from the dashboard to compare side-by-side.</p>
+        <button onClick={() => setPage({ name: 'dashboard' })} className="text-scout-accent hover:underline text-sm">
+          Go to Dashboard
         </button>
       </div>
     );
@@ -75,61 +77,52 @@ export default function ComparisonView() {
   }
 
   return (
-    <div className="animate-fade-in">
-      <div className="flex items-end justify-between mb-8">
-        <div>
-          <h2 className="font-serif text-3xl text-ink tracking-tight">Comparison</h2>
-          <p className="font-serif italic text-stone mt-0.5">{data.length} properties selected</p>
-        </div>
-        <button onClick={clearCompare}
-          className="text-stone hover:text-ink text-xs font-semibold uppercase tracking-wider transition-colors">
-          Clear
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">Property Comparison</h2>
+        <button onClick={clearCompare} className="text-scout-muted hover:text-white text-sm">
+          Clear Selection
         </button>
       </div>
 
-      <div className="bg-white border border-sand/50 rounded-lg shadow-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-sand/60">
-                <th className="text-left py-4 px-6 text-[10px] uppercase tracking-wider text-stone font-semibold w-48">Metric</th>
-                {data.map((d) => (
-                  <th key={d.property.id} className="text-right py-4 px-6">
-                    <button onClick={() => setPage({ name: 'property', id: d.property.id })}
-                      className="font-serif text-base text-emerald hover:text-emerald-dark transition-colors text-right">
-                      {d.property.name}
-                    </button>
-                    {d.property.city && (
-                      <div className="text-[10px] text-stone font-body font-normal mt-0.5">
-                        {d.property.city}, {d.property.state}
-                      </div>
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {METRIC_ROWS.map((row, i) => (
-                <tr key={row.key}
-                  className={`border-b border-sand/20 ${i % 2 === 0 ? '' : 'bg-parchment/20'}`}>
-                  <td className="py-3 px-6 text-charcoal text-xs font-medium">{row.label}</td>
-                  {data.map((d) => {
-                    const value = d.metrics[row.key] as number;
-                    return (
-                      <td key={d.property.id} className="py-3 px-6 text-right">
-                        {row.thresholds ? (
-                          <MetricBadge value={value} thresholds={row.thresholds} format={row.format} />
-                        ) : (
-                          <span className="font-mono text-sm text-ink">{row.format(value)}</span>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-scout-border">
+              <th className="text-left py-3 pr-4 text-scout-muted font-medium">Metric</th>
+              {data.map((d) => (
+                <th key={d.property.id} className="text-right py-3 px-4 font-medium">
+                  <button onClick={() => setPage({ name: 'property', id: d.property.id })}
+                    className="text-scout-accent hover:underline">
+                    {d.property.name}
+                  </button>
+                  {d.property.city && (
+                    <div className="text-xs text-scout-muted font-normal">{d.property.city}, {d.property.state}</div>
+                  )}
+                </th>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </thead>
+          <tbody>
+            {METRIC_ROWS.map((row) => (
+              <tr key={row.key} className="border-b border-scout-border/50">
+                <td className="py-2.5 pr-4 text-scout-muted">{row.label}</td>
+                {data.map((d) => {
+                  const value = d.metrics[row.key] as number;
+                  return (
+                    <td key={d.property.id} className="py-2.5 px-4 text-right font-mono">
+                      {row.thresholds ? (
+                        <MetricBadge value={value} thresholds={row.thresholds} format={row.format} />
+                      ) : (
+                        <span className="text-white">{row.format(value)}</span>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

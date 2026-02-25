@@ -62,11 +62,13 @@ export default function ComparisonView() {
 
   if (compareIds.length === 0) {
     return (
-      <div className="text-center py-16">
-        <h2 className="text-2xl font-bold mb-3">Compare Properties</h2>
-        <p className="text-scout-muted mb-4">Select 2-3 properties from the dashboard to compare side-by-side.</p>
-        <button onClick={() => setPage({ name: 'dashboard' })} className="text-scout-accent hover:underline text-sm">
-          Go to Dashboard
+      <div className="text-center py-20 animate-fade-up">
+        <h2 className="font-display text-3xl text-scout-bone mb-3">Compare Properties</h2>
+        <div className="divider w-24 mx-auto mb-5" />
+        <p className="text-scout-fossil mb-5 text-sm">Select 2-3 properties from the dashboard to compare side-by-side.</p>
+        <button onClick={() => setPage({ name: 'dashboard' })}
+          className="text-scout-mint hover:text-scout-chalk text-sm transition-colors">
+          Go to Dashboard &rarr;
         </button>
       </div>
     );
@@ -77,44 +79,48 @@ export default function ComparisonView() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Property Comparison</h2>
-        <button onClick={clearCompare} className="text-scout-muted hover:text-white text-sm">
+    <div className="animate-fade-up">
+      <div className="flex items-end justify-between mb-8">
+        <div>
+          <h2 className="font-display text-3xl text-scout-bone">Property Comparison</h2>
+          <div className="divider mt-3 w-24" />
+        </div>
+        <button onClick={clearCompare} className="text-scout-fossil hover:text-scout-chalk text-sm transition-colors">
           Clear Selection
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto bg-scout-carbon border border-scout-ash rounded-lg">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-scout-border">
-              <th className="text-left py-3 pr-4 text-scout-muted font-medium">Metric</th>
+            <tr className="border-b border-scout-ash">
+              <th className="text-left py-4 px-5 text-[10px] text-scout-drift uppercase tracking-[0.12em] font-medium">Metric</th>
               {data.map((d) => (
-                <th key={d.property.id} className="text-right py-3 px-4 font-medium">
+                <th key={d.property.id} className="text-right py-4 px-5">
                   <button onClick={() => setPage({ name: 'property', id: d.property.id })}
-                    className="text-scout-accent hover:underline">
+                    className="text-scout-mint hover:text-scout-chalk transition-colors font-display text-base">
                     {d.property.name}
                   </button>
                   {d.property.city && (
-                    <div className="text-xs text-scout-muted font-normal">{d.property.city}, {d.property.state}</div>
+                    <div className="text-[10px] text-scout-drift font-body font-normal mt-0.5">{d.property.city}, {d.property.state}</div>
                   )}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {METRIC_ROWS.map((row) => (
-              <tr key={row.key} className="border-b border-scout-border/50">
-                <td className="py-2.5 pr-4 text-scout-muted">{row.label}</td>
+            {METRIC_ROWS.map((row, i) => (
+              <tr key={row.key} className={`border-b border-scout-ash/40 hover:bg-scout-ash/20 transition-colors
+                ${i % 5 === 4 ? 'border-b-scout-ash' : ''}`}>
+                <td className="py-3 px-5 text-scout-fossil text-xs">{row.label}</td>
                 {data.map((d) => {
                   const value = d.metrics[row.key] as number;
                   return (
-                    <td key={d.property.id} className="py-2.5 px-4 text-right font-mono">
+                    <td key={d.property.id} className="py-3 px-5 text-right font-mono text-xs">
                       {row.thresholds ? (
                         <MetricBadge value={value} thresholds={row.thresholds} format={row.format} />
                       ) : (
-                        <span className="text-white">{row.format(value)}</span>
+                        <span className="text-scout-chalk">{row.format(value)}</span>
                       )}
                     </td>
                   );

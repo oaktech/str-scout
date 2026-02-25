@@ -8,19 +8,17 @@ export default function MetricBadge({ value, thresholds, format }: MetricBadgePr
   let color: string;
 
   if (thresholds.invert) {
-    // Lower is better (e.g., break-even occupancy)
-    color = value < thresholds.green ? 'bg-green-500/20 text-green-400'
-      : value < thresholds.yellow ? 'bg-yellow-500/20 text-yellow-400'
-      : 'bg-red-500/20 text-red-400';
+    color = value < thresholds.green ? 'bg-scout-mint/10 text-scout-mint border border-scout-mint/20'
+      : value < thresholds.yellow ? 'bg-scout-amber/10 text-scout-amber border border-scout-amber/20'
+      : 'bg-scout-rose/10 text-scout-rose border border-scout-rose/20';
   } else {
-    // Higher is better (e.g., cash on cash)
-    color = value > thresholds.green ? 'bg-green-500/20 text-green-400'
-      : value > thresholds.yellow ? 'bg-yellow-500/20 text-yellow-400'
-      : 'bg-red-500/20 text-red-400';
+    color = value > thresholds.green ? 'bg-scout-mint/10 text-scout-mint border border-scout-mint/20'
+      : value > thresholds.yellow ? 'bg-scout-amber/10 text-scout-amber border border-scout-amber/20'
+      : 'bg-scout-rose/10 text-scout-rose border border-scout-rose/20';
   }
 
   return (
-    <span className={`${color} px-2 py-0.5 rounded text-xs font-mono font-medium`}>
+    <span className={`${color} px-2 py-0.5 rounded text-xs font-mono font-medium inline-block`}>
       {format(value)}
     </span>
   );

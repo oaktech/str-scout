@@ -40,7 +40,6 @@ export default function DocumentUploadZone({ propertyId, onExtracted }: Props) {
         try {
           const result = await api.triggerExtraction(doc.id);
           showToast(`Extracted ${result.extracted} fields`, 'success');
-          // Open review modal
           const fields = await api.getExtracted(doc.id);
           setReviewDoc({ docId: doc.id, fields });
         } catch (err: any) {
@@ -98,8 +97,10 @@ export default function DocumentUploadZone({ propertyId, onExtracted }: Props) {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
-          ${dragOver ? 'border-scout-accent bg-scout-accent/5' : 'border-scout-border hover:border-scout-accent/50'}`}
+        className={`border-2 border-dashed rounded-lg p-10 text-center transition-all duration-200 cursor-pointer
+          ${dragOver
+            ? 'border-scout-mint bg-scout-mint/5 shadow-inner'
+            : 'border-scout-ash hover:border-scout-mint/30 hover:bg-scout-carbon/50'}`}
         onClick={() => {
           const input = document.createElement('input');
           input.type = 'file';
@@ -110,19 +111,20 @@ export default function DocumentUploadZone({ propertyId, onExtracted }: Props) {
         }}
       >
         {uploading ? (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3">
             <LoadingSpinner />
-            <span className="text-sm text-scout-muted">Uploading...</span>
+            <span className="text-sm text-scout-fossil">Uploading...</span>
           </div>
         ) : extracting !== null ? (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3">
             <LoadingSpinner />
-            <span className="text-sm text-scout-muted">Extracting data with AI...</span>
+            <span className="text-sm text-scout-mint">Extracting data with AI...</span>
           </div>
         ) : (
           <>
-            <p className="text-scout-muted mb-1">Drag & drop property documents here</p>
-            <p className="text-xs text-scout-muted">PDF, JPEG, PNG, WebP (max 10MB)</p>
+            <div className="text-3xl text-scout-flint mb-3">&uarr;</div>
+            <p className="text-scout-fossil mb-1">Drag & drop property documents here</p>
+            <p className="text-[11px] text-scout-drift">PDF, JPEG, PNG, WebP (max 10MB)</p>
           </>
         )}
       </div>
@@ -131,29 +133,35 @@ export default function DocumentUploadZone({ propertyId, onExtracted }: Props) {
       {loading ? (
         <div className="flex justify-center py-8"><LoadingSpinner /></div>
       ) : docs.length > 0 ? (
-        <div className="mt-6 space-y-2">
-          <h3 className="text-sm font-semibold mb-3">Uploaded Documents</h3>
-          {docs.map((doc) => (
-            <div key={doc.id} className="flex items-center justify-between bg-scout-surface border border-scout-border rounded-lg p-3">
-              <div>
-                <p className="text-sm text-white">{doc.original_name}</p>
-                <p className="text-xs text-scout-muted">
-                  {(doc.size_bytes / 1024).toFixed(0)} KB &middot; {new Date(doc.uploaded_at).toLocaleDateString()}
-                </p>
+        <div className="mt-8">
+          <div className="flex items-center gap-4 mb-4">
+            <h3 className="text-[11px] text-scout-drift uppercase tracking-[0.15em] font-medium">Uploaded Documents</h3>
+            <div className="divider flex-1" />
+          </div>
+          <div className="space-y-2">
+            {docs.map((doc) => (
+              <div key={doc.id} className="flex items-center justify-between bg-scout-carbon border border-scout-ash
+                                           rounded-lg p-4 hover:border-scout-flint transition-colors">
+                <div>
+                  <p className="text-sm text-scout-chalk">{doc.original_name}</p>
+                  <p className="text-[11px] text-scout-drift font-mono mt-0.5">
+                    {(doc.size_bytes / 1024).toFixed(0)} KB &middot; {new Date(doc.uploaded_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => handleExtractExisting(doc.id)}
+                    disabled={extracting === doc.id}
+                    className="text-scout-mint text-xs hover:text-scout-mint-dim disabled:opacity-50 font-medium transition-colors">
+                    {extracting === doc.id ? 'Extracting...' : 'Extract'}
+                  </button>
+                  <button onClick={() => handleDelete(doc.id)}
+                    className="text-scout-rose/60 text-xs hover:text-scout-rose transition-colors">
+                    Delete
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => handleExtractExisting(doc.id)}
-                  disabled={extracting === doc.id}
-                  className="text-scout-accent text-xs hover:underline disabled:opacity-50">
-                  {extracting === doc.id ? 'Extracting...' : 'Extract'}
-                </button>
-                <button onClick={() => handleDelete(doc.id)}
-                  className="text-red-400 text-xs hover:underline">
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ) : null}
 

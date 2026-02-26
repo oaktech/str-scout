@@ -10,6 +10,7 @@ Investment analysis tool for short-term rental properties. Enter property detail
 - **10-Year Projections** — Annual cash flow, property appreciation, equity buildup, net return, and CAGR
 - **AI Document Extraction** — Drag & drop property listings or financial documents; Claude Vision extracts data for review
 - **Side-by-Side Comparison** — Compare 2-3 properties with color-coded metric thresholds
+- **Address Autocomplete** — Google Places integration auto-fills address, city, state, and zip
 - **STR-Specific Expenses** — Per-turnover costs (cleaning, laundry) normalized by guest turnover rate
 
 ## Stack
@@ -18,7 +19,7 @@ Investment analysis tool for short-term rental properties. Enter property detail
 |---|---|
 | Frontend | React, Vite, Tailwind CSS, Zustand |
 | Backend | Express, TypeScript |
-| Database | PostgreSQL |
+| Database | SQLite (local dev) / PostgreSQL (production) |
 | AI | Anthropic Claude (document extraction) |
 | Deployment | Railway |
 
@@ -30,13 +31,30 @@ npm install
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your DATABASE_URL and ANTHROPIC_API_KEY
+# Edit .env — see configuration below
 
 # Run development servers (backend :3001, frontend :5173)
 npm run dev
 ```
 
-The app works without a database (metrics won't persist) and without an Anthropic key (document extraction disabled).
+### Database
+
+**Local development** uses SQLite automatically — no setup needed. The database file is created at `data/str-scout.db` on first run.
+
+**Production** uses PostgreSQL. Set `DATABASE_URL` in your environment to connect:
+
+```bash
+DATABASE_URL=postgresql://user:password@host:5432/str_scout
+```
+
+When `DATABASE_URL` is unset, the server falls back to SQLite.
+
+### Optional API Keys
+
+| Variable | Purpose | Required? |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Document extraction via Claude Vision | No — extraction disabled without it |
+| `VITE_GOOGLE_PLACES_API_KEY` | Address autocomplete in the wizard | No — falls back to plain text input |
 
 ## Project Structure
 
@@ -53,6 +71,7 @@ str-scout/
 │           ├── components/  # Pages and UI components
 │           ├── hooks/       # Data fetching hooks
 │           └── services/    # API client
+├── data/                    # SQLite database (local dev, gitignored)
 ├── uploads/                 # Document storage (local)
 └── railway.toml             # Railway deployment config
 ```
@@ -80,6 +99,8 @@ Documents      POST|GET   /api/properties/:id/documents
                GET        /api/documents/:docId/extracted
                PUT        /api/extracted/:extractId
                POST       /api/properties/:id/apply-extracted
+
+Health         GET        /api/health
 ```
 
 ## Testing

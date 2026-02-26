@@ -16,6 +16,7 @@ import { expensesRouter } from './routes/expenses.js';
 import { calculationsRouter } from './routes/calculations.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { documentsRouter } from './routes/documents.js';
+import { lookupRouter } from './routes/lookup.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -37,6 +38,7 @@ async function start() {
   app.use('/api', calculationsRouter);
   app.use('/api', dashboardRouter);
   app.use('/api', documentsRouter);
+  app.use('/api', lookupRouter);
 
   app.get('/api/health', (_req, res) => {
     res.json({

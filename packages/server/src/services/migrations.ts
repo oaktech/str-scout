@@ -115,6 +115,29 @@ const migrations: Migration[] = [
       );
     `,
   },
+  {
+    name: '008_create_property_lookups',
+    sql: `
+      CREATE TABLE IF NOT EXISTS property_lookups (
+        id              SERIAL PRIMARY KEY,
+        address         TEXT NOT NULL,
+        city            TEXT,
+        state           TEXT,
+        zip             TEXT,
+        raw_response    TEXT,
+        estimated_value NUMERIC(12,2),
+        tax_assessment  NUMERIC(12,2),
+        property_type   TEXT,
+        unit_count      INTEGER,
+        bedrooms        INTEGER,
+        bathrooms       NUMERIC(3,1),
+        sqft            INTEGER,
+        year_built      INTEGER,
+        lot_sqft        INTEGER,
+        created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `,
+  },
 ];
 
 /** Translate PostgreSQL DDL to SQLite-compatible DDL */

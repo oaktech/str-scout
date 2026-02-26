@@ -5,6 +5,7 @@ import CurrencyInput from './shared/CurrencyInput';
 import PercentInput from './shared/PercentInput';
 import AddressAutocomplete from './shared/AddressAutocomplete';
 import type { PropertyType, ExpenseFrequency } from '../types';
+import type { PropertyLookupData } from '../services/api';
 
 const PROPERTY_TYPES: { value: PropertyType; label: string }[] = [
   { value: 'single_family', label: 'Single Family' },
@@ -69,6 +70,97 @@ export default function AddPropertyWizard() {
 
   // Expenses
   const [expenses, setExpenses] = useState(DEFAULT_EXPENSES.map((e) => ({ ...e })));
+
+  // Property lookup — store raw data, apply per-step on user action
+  const [lookingUp, setLookingUp] = useState(false);
+  const [lookupData, setLookupData] = useState<PropertyLookupData | null>(null);
+  const [dismissedSteps, setDismissedSteps] = useState<Set<Step>>(new Set());
+  const [appliedFields, setAppliedFields] = useState<Set<string>>(new Set());
+
+  const hasLookupForStep = (s: Step): boolean => {
+    if (!lookupData || dismissedSteps.has(s)) return false;
+    if (s === 'basics') return !!(lookupData.propertyType || (lookupData.unitCount && lookupData.unitCount > 1));
+    if (s === 'acquisition') return !!lookupData.estimatedValue;
+    if (s === 'expenses') return !!(lookupData.taxAssessment || lookupData.insuranceEstimate);
+    return false;
+  };
+
+  const dismissLookup = (s: Step) => {
+    setDismissedSteps((prev) => new Set(prev).add(s));
+  };
+
+  const applyBasicsLookup = () => {
+    if (!lookupData) return;
+    const applied = new Set(appliedFields);
+    if (lookupData.propertyType) {
+      setPropertyType(lookupData.propertyType as PropertyType);
+      applied.add('propertyType');
+    }
+    if (lookupData.unitCount && lookupData.unitCount > 0) {
+      setUnitCount(lookupData.unitCount);
+      applied.add('unitCount');
+    }
+    setAppliedFields(applied);
+    setDismissedSteps((prev) => new Set(prev).add('basics'));
+  };
+
+  const applyAcquisitionLookup = () => {
+    if (!lookupData) return;
+    const applied = new Set(appliedFields);
+    if (lookupData.estimatedValue) {
+      setPurchasePrice(lookupData.estimatedValue);
+      applied.add('purchasePrice');
+    }
+    setAppliedFields(applied);
+    setDismissedSteps((prev) => new Set(prev).add('acquisition'));
+  };
+
+  const applyExpensesLookup = () => {
+    if (!lookupData) return;
+    const applied = new Set(appliedFields);
+    setExpenses((prev) => prev.map((exp) => {
+      if (exp.category === 'property_tax' && lookupData.taxAssessment) {
+        applied.add('property_tax');
+        return { ...exp, amount: lookupData.taxAssessment };
+      }
+      if (exp.category === 'insurance' && lookupData.insuranceEstimate) {
+        applied.add('insurance');
+        return { ...exp, amount: lookupData.insuranceEstimate };
+      }
+      return exp;
+    }));
+    setAppliedFields(applied);
+    setDismissedSteps((prev) => new Set(prev).add('expenses'));
+  };
+
+  const handleAddressSelect = async ({ address: addr, city: c, state: s, zip: z }: { address: string; city: string; state: string; zip: string }) => {
+    setAddress(addr);
+    if (c) setCity(c);
+    if (s) setState(s);
+    if (z) setZip(z);
+
+    // Reset previous lookup state
+    setLookupData(null);
+    setDismissedSteps(new Set());
+    setAppliedFields(new Set());
+
+    if (addr) {
+      setLookingUp(true);
+      try {
+        const data = await api.lookupProperty(addr, c, s, z);
+        if (data) {
+          setLookupData(data);
+          showToast('Property records found — review on each step', 'info');
+        }
+      } catch {
+        // Lookup is optional — silently ignore errors
+      } finally {
+        setLookingUp(false);
+      }
+    }
+  };
+
+  const fmtDollars = (n: number) => '$' + n.toLocaleString();
 
   const stepIndex = STEPS.indexOf(step);
   const canPrev = stepIndex > 0;
@@ -175,13 +267,11 @@ export default function AddPropertyWizard() {
                 <AddressAutocomplete
                   value={address}
                   onChange={setAddress}
-                  onSelect={({ address: addr, city: c, state: s, zip: z }) => {
-                    setAddress(addr);
-                    if (c) setCity(c);
-                    if (s) setState(s);
-                    if (z) setZip(z);
-                  }}
+                  onSelect={handleAddressSelect}
                 />
+                {lookingUp && (
+                  <p className="text-xs text-scout-drift mt-1.5 animate-pulse">Looking up property details...</p>
+                )}
               </div>
               <div>
                 <label className="block text-[11px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">City</label>
@@ -198,18 +288,57 @@ export default function AddPropertyWizard() {
                 </div>
               </div>
             </div>
+
+            {/* Lookup banner — basics */}
+            {hasLookupForStep('basics') && lookupData && (
+              <div className="border border-scout-mint/20 bg-scout-mint/5 rounded-lg p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <p className="text-xs font-medium text-scout-mint uppercase tracking-[0.08em]">Property Records Found</p>
+                  <button onClick={() => dismissLookup('basics')} className="text-[10px] text-scout-flint hover:text-scout-fossil">dismiss</button>
+                </div>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+                  {lookupData.propertyType && (
+                    <div className="flex justify-between"><span className="text-scout-drift">Type</span><span className="text-scout-bone font-mono">{PROPERTY_TYPES.find((t) => t.value === lookupData.propertyType)?.label ?? lookupData.propertyType}</span></div>
+                  )}
+                  {lookupData.unitCount != null && lookupData.unitCount > 0 && (
+                    <div className="flex justify-between"><span className="text-scout-drift">Units</span><span className="text-scout-bone font-mono">{lookupData.unitCount}</span></div>
+                  )}
+                  {lookupData.bedrooms != null && (
+                    <div className="flex justify-between"><span className="text-scout-drift">Beds</span><span className="text-scout-bone font-mono">{lookupData.bedrooms}</span></div>
+                  )}
+                  {lookupData.bathrooms != null && (
+                    <div className="flex justify-between"><span className="text-scout-drift">Baths</span><span className="text-scout-bone font-mono">{lookupData.bathrooms}</span></div>
+                  )}
+                  {lookupData.sqft != null && (
+                    <div className="flex justify-between"><span className="text-scout-drift">Sq Ft</span><span className="text-scout-bone font-mono">{lookupData.sqft.toLocaleString()}</span></div>
+                  )}
+                  {lookupData.yearBuilt != null && (
+                    <div className="flex justify-between"><span className="text-scout-drift">Year Built</span><span className="text-scout-bone font-mono">{lookupData.yearBuilt}</span></div>
+                  )}
+                </div>
+                <button onClick={applyBasicsLookup}
+                  className="w-full text-center text-xs font-medium text-scout-mint border border-scout-mint/30 rounded-md py-1.5 hover:bg-scout-mint/10 transition-colors">
+                  Use type &amp; unit count
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">Type</label>
+                <label className="block text-[11px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">
+                  Type{appliedFields.has('propertyType') && <span className="text-scout-mint/70 normal-case tracking-normal font-normal ml-1">from records</span>}
+                </label>
                 <select value={propertyType} onChange={(e) => setPropertyType(e.target.value as PropertyType)}
-                  className={inputClass}>
+                  className={`${inputClass} ${appliedFields.has('propertyType') ? 'border-scout-mint/30' : ''}`}>
                   {PROPERTY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">Units</label>
+                <label className="block text-[11px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">
+                  Units{appliedFields.has('unitCount') && <span className="text-scout-mint/70 normal-case tracking-normal font-normal ml-1">from records</span>}
+                </label>
                 <input type="number" value={unitCount} onChange={(e) => setUnitCount(parseInt(e.target.value) || 1)} min={1}
-                  className={`${inputClass} font-mono`} />
+                  className={`${inputClass} font-mono ${appliedFields.has('unitCount') ? 'border-scout-mint/30' : ''}`} />
               </div>
             </div>
           </div>
@@ -217,7 +346,31 @@ export default function AddPropertyWizard() {
 
         {step === 'acquisition' && (
           <div className="space-y-4 max-w-lg">
-            <CurrencyInput label="Purchase Price" value={purchasePrice} onChange={setPurchasePrice} />
+            {/* Lookup banner — acquisition */}
+            {hasLookupForStep('acquisition') && lookupData && (
+              <div className="border border-scout-mint/20 bg-scout-mint/5 rounded-lg p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <p className="text-xs font-medium text-scout-mint uppercase tracking-[0.08em]">Estimated Value Found</p>
+                  <button onClick={() => dismissLookup('acquisition')} className="text-[10px] text-scout-flint hover:text-scout-fossil">dismiss</button>
+                </div>
+                <div className="text-xs text-scout-drift space-y-1">
+                  <div className="flex justify-between"><span>Estimated Value</span><span className="text-scout-bone font-mono">{fmtDollars(lookupData.estimatedValue!)}</span></div>
+                  {lookupData.sqft != null && lookupData.estimatedValue != null && (
+                    <div className="flex justify-between"><span>Price / Sq Ft</span><span className="text-scout-bone font-mono">{fmtDollars(Math.round(lookupData.estimatedValue / lookupData.sqft))}</span></div>
+                  )}
+                </div>
+                <button onClick={applyAcquisitionLookup}
+                  className="w-full text-center text-xs font-medium text-scout-mint border border-scout-mint/30 rounded-md py-1.5 hover:bg-scout-mint/10 transition-colors">
+                  Use as purchase price
+                </button>
+              </div>
+            )}
+
+            <CurrencyInput
+              label={appliedFields.has('purchasePrice') ? 'Purchase Price (from records)' : 'Purchase Price'}
+              value={purchasePrice}
+              onChange={setPurchasePrice}
+            />
             <CurrencyInput label="Closing Costs" value={closingCosts} onChange={setClosingCosts} />
             <CurrencyInput label="Renovation / Furnishing" value={renovation} onChange={setRenovation} />
             {purchasePrice > 0 && (
@@ -283,37 +436,63 @@ export default function AddPropertyWizard() {
             <p className="text-xs text-scout-drift mb-4">
               Enter your expected operating expenses. Use "per turnover" for costs that occur each guest checkout (e.g., cleaning).
             </p>
-            {expenses.map((exp, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 items-end">
-                <div className="col-span-4">
-                  {i === 0 && <label className="block text-[10px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">Category</label>}
-                  <input value={exp.label} readOnly
-                    className={`${inputClass} cursor-default`} />
+
+            {/* Lookup banner — expenses */}
+            {hasLookupForStep('expenses') && lookupData && (
+              <div className="border border-scout-mint/20 bg-scout-mint/5 rounded-lg p-4 space-y-3 mb-2">
+                <div className="flex items-start justify-between">
+                  <p className="text-xs font-medium text-scout-mint uppercase tracking-[0.08em]">Tax &amp; Insurance Estimates</p>
+                  <button onClick={() => dismissLookup('expenses')} className="text-[10px] text-scout-flint hover:text-scout-fossil">dismiss</button>
                 </div>
-                <div className="col-span-4">
-                  {i === 0 && <label className="block text-[10px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">Amount ($)</label>}
-                  <input type="number" value={exp.amount || ''} onChange={(e) => {
-                    const updated = [...expenses];
-                    updated[i] = { ...exp, amount: parseFloat(e.target.value) || 0 };
-                    setExpenses(updated);
-                  }}
-                    className={`${inputClass} font-mono`} />
+                <div className="text-xs text-scout-drift space-y-1">
+                  {lookupData.taxAssessment != null && (
+                    <div className="flex justify-between"><span>Property Tax (annual)</span><span className="text-scout-bone font-mono">{fmtDollars(lookupData.taxAssessment)}</span></div>
+                  )}
+                  {lookupData.insuranceEstimate != null && (
+                    <div className="flex justify-between"><span>Insurance est. (annual, ~0.5% of value)</span><span className="text-scout-bone font-mono">{fmtDollars(lookupData.insuranceEstimate)}</span></div>
+                  )}
                 </div>
-                <div className="col-span-4">
-                  {i === 0 && <label className="block text-[10px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">Frequency</label>}
-                  <select value={exp.frequency} onChange={(e) => {
-                    const updated = [...expenses];
-                    updated[i] = { ...exp, frequency: e.target.value as ExpenseFrequency };
-                    setExpenses(updated);
-                  }}
-                    className={inputClass}>
-                    <option value="monthly">Monthly</option>
-                    <option value="annual">Annual</option>
-                    <option value="per_turnover">Per Turnover</option>
-                  </select>
-                </div>
+                <button onClick={applyExpensesLookup}
+                  className="w-full text-center text-xs font-medium text-scout-mint border border-scout-mint/30 rounded-md py-1.5 hover:bg-scout-mint/10 transition-colors">
+                  Use these amounts
+                </button>
               </div>
-            ))}
+            )}
+
+            {expenses.map((exp, i) => {
+              const isApplied = appliedFields.has(exp.category);
+              return (
+                <div key={i} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-4">
+                    {i === 0 && <label className="block text-[10px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">Category</label>}
+                    <input value={exp.label} readOnly
+                      className={`${inputClass} cursor-default`} />
+                  </div>
+                  <div className="col-span-4">
+                    {i === 0 && <label className="block text-[10px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">Amount ($){isApplied ? '' : ''}</label>}
+                    <input type="number" value={exp.amount || ''} onChange={(e) => {
+                      const updated = [...expenses];
+                      updated[i] = { ...exp, amount: parseFloat(e.target.value) || 0 };
+                      setExpenses(updated);
+                    }}
+                      className={`${inputClass} font-mono ${isApplied ? 'border-scout-mint/30' : ''}`} />
+                  </div>
+                  <div className="col-span-4">
+                    {i === 0 && <label className="block text-[10px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">Frequency</label>}
+                    <select value={exp.frequency} onChange={(e) => {
+                      const updated = [...expenses];
+                      updated[i] = { ...exp, frequency: e.target.value as ExpenseFrequency };
+                      setExpenses(updated);
+                    }}
+                      className={inputClass}>
+                      <option value="monthly">Monthly</option>
+                      <option value="annual">Annual</option>
+                      <option value="per_turnover">Per Turnover</option>
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

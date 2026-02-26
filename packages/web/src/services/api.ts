@@ -22,6 +22,38 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+// Property Lookup
+export interface PropertyLookupData {
+  estimatedValue: number | null;
+  taxAssessment: number | null;
+  propertyType: string | null;
+  unitCount: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  sqft: number | null;
+  yearBuilt: number | null;
+  lotSqft: number | null;
+  insuranceEstimate: number | null;
+}
+
+interface LookupResponse {
+  found: boolean;
+  cached?: boolean;
+  data: PropertyLookupData | null;
+}
+
+export async function lookupProperty(
+  address: string, city?: string, state?: string, zip?: string,
+): Promise<PropertyLookupData | null> {
+  const params = new URLSearchParams({ address });
+  if (city) params.set('city', city);
+  if (state) params.set('state', state);
+  if (zip) params.set('zip', zip);
+
+  const res = await request<LookupResponse>(`/lookup?${params.toString()}`);
+  return res.found ? res.data : null;
+}
+
 // Properties
 export const getProperties = () => request<Property[]>('/properties');
 export const getProperty = (id: number) => request<Property>(`/properties/${id}`);

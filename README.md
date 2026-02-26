@@ -11,6 +11,7 @@ Investment analysis tool for short-term rental properties. Enter property detail
 - **AI Document Extraction** — Drag & drop property listings or financial documents; Claude Vision extracts data for review
 - **Side-by-Side Comparison** — Compare 2-3 properties with color-coded metric thresholds
 - **Address Autocomplete** — Google Places integration auto-fills address, city, state, and zip
+- **Property Data Lookup** — RentCast integration auto-populates property value, tax assessment, type, and insurance estimates after address entry
 - **STR-Specific Expenses** — Per-turnover costs (cleaning, laundry) normalized by guest turnover rate
 
 ## Stack
@@ -55,6 +56,7 @@ When `DATABASE_URL` is unset, the server falls back to SQLite.
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Document extraction via Claude Vision | No — extraction disabled without it |
 | `VITE_GOOGLE_PLACES_API_KEY` | Address autocomplete in the wizard | No — falls back to plain text input |
+| `RENTCAST_API_KEY` | Property data lookup (value, tax, type) | No — wizard works without it (free tier: 50 calls/mo at [rentcast.io](https://www.rentcast.io/)) |
 
 ## Project Structure
 
@@ -90,6 +92,7 @@ Expenses       GET|POST   /api/properties/:id/expenses
                PUT|DELETE /api/properties/:id/expenses/:eid
 
 Calculations   GET        /api/properties/:id/calculations
+Lookup         GET        /api/lookup?address=...&city=...&state=...&zip=...
 Dashboard      GET        /api/dashboard
 Comparison     POST       /api/compare
 

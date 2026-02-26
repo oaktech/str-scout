@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getPool, dbAvailable } from '../services/db.js';
+import { getDb, dbAvailable } from '../services/db.js';
 
 export const expensesRouter = Router();
 
@@ -10,8 +10,8 @@ const dbGuard = (_req: any, res: any, next: any) => {
 
 // GET /api/properties/:id/expenses
 expensesRouter.get('/:id/expenses', dbGuard, async (req, res) => {
-  const pool = getPool()!;
-  const { rows } = await pool.query(
+  const db = getDb()!;
+  const { rows } = await db.query(
     'SELECT * FROM operating_expenses WHERE property_id = $1 ORDER BY category, label',
     [req.params.id],
   );
@@ -20,14 +20,14 @@ expensesRouter.get('/:id/expenses', dbGuard, async (req, res) => {
 
 // POST /api/properties/:id/expenses
 expensesRouter.post('/:id/expenses', dbGuard, async (req, res) => {
-  const pool = getPool()!;
+  const db = getDb()!;
   const { category, label, amount, frequency, is_percentage } = req.body;
 
   if (!category || !label) {
     return res.status(400).json({ error: 'category and label are required' });
   }
 
-  const { rows } = await pool.query(
+  const { rows } = await db.query(
     `INSERT INTO operating_expenses (property_id, category, label, amount, frequency, is_percentage)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
@@ -38,10 +38,10 @@ expensesRouter.post('/:id/expenses', dbGuard, async (req, res) => {
 
 // PUT /api/properties/:id/expenses/:eid
 expensesRouter.put('/:id/expenses/:eid', dbGuard, async (req, res) => {
-  const pool = getPool()!;
+  const db = getDb()!;
   const { category, label, amount, frequency, is_percentage } = req.body;
 
-  const { rows } = await pool.query(
+  const { rows } = await db.query(
     `UPDATE operating_expenses
      SET category = COALESCE($1, category),
          label = COALESCE($2, label),
@@ -59,8 +59,8 @@ expensesRouter.put('/:id/expenses/:eid', dbGuard, async (req, res) => {
 
 // DELETE /api/properties/:id/expenses/:eid
 expensesRouter.delete('/:id/expenses/:eid', dbGuard, async (req, res) => {
-  const pool = getPool()!;
-  const { rowCount } = await pool.query(
+  const db = getDb()!;
+  const { rowCount } = await db.query(
     'DELETE FROM operating_expenses WHERE id = $1 AND property_id = $2',
     [req.params.eid, req.params.id],
   );

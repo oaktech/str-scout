@@ -1,13 +1,13 @@
 import { Router } from 'express';
-import { getPool, dbAvailable } from '../services/db.js';
+import { getDb, dbAvailable } from '../services/db.js';
 
 export const propertiesRouter = Router();
 
 // GET /api/properties — list all
 propertiesRouter.get('/', async (_req, res) => {
   if (!dbAvailable) return res.status(503).json({ error: 'Database not available' });
-  const pool = getPool()!;
-  const { rows } = await pool.query(
+  const db = getDb()!;
+  const { rows } = await db.query(
     'SELECT * FROM properties ORDER BY created_at DESC',
   );
   res.json(rows);
@@ -16,12 +16,12 @@ propertiesRouter.get('/', async (_req, res) => {
 // POST /api/properties — create
 propertiesRouter.post('/', async (req, res) => {
   if (!dbAvailable) return res.status(503).json({ error: 'Database not available' });
-  const pool = getPool()!;
+  const db = getDb()!;
   const { name, address, city, state, zip, property_type, unit_count, notes } = req.body;
 
   if (!name) return res.status(400).json({ error: 'name is required' });
 
-  const { rows } = await pool.query(
+  const { rows } = await db.query(
     `INSERT INTO properties (name, address, city, state, zip, property_type, unit_count, notes)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
@@ -31,9 +31,9 @@ propertiesRouter.post('/', async (req, res) => {
   const property = rows[0];
 
   // Create default financial rows
-  await pool.query('INSERT INTO acquisition_costs (property_id) VALUES ($1)', [property.id]);
-  await pool.query('INSERT INTO financing (property_id) VALUES ($1)', [property.id]);
-  await pool.query('INSERT INTO rental_income (property_id) VALUES ($1)', [property.id]);
+  await db.query('INSERT INTO acquisition_costs (property_id) VALUES ($1)', [property.id]);
+  await db.query('INSERT INTO financing (property_id) VALUES ($1)', [property.id]);
+  await db.query('INSERT INTO rental_income (property_id) VALUES ($1)', [property.id]);
 
   res.status(201).json(property);
 });
@@ -41,8 +41,8 @@ propertiesRouter.post('/', async (req, res) => {
 // GET /api/properties/:id
 propertiesRouter.get('/:id', async (req, res) => {
   if (!dbAvailable) return res.status(503).json({ error: 'Database not available' });
-  const pool = getPool()!;
-  const { rows } = await pool.query('SELECT * FROM properties WHERE id = $1', [req.params.id]);
+  const db = getDb()!;
+  const { rows } = await db.query('SELECT * FROM properties WHERE id = $1', [req.params.id]);
   if (rows.length === 0) return res.status(404).json({ error: 'Property not found' });
   res.json(rows[0]);
 });
@@ -50,10 +50,10 @@ propertiesRouter.get('/:id', async (req, res) => {
 // PUT /api/properties/:id
 propertiesRouter.put('/:id', async (req, res) => {
   if (!dbAvailable) return res.status(503).json({ error: 'Database not available' });
-  const pool = getPool()!;
+  const db = getDb()!;
   const { name, address, city, state, zip, property_type, unit_count, status, notes } = req.body;
 
-  const { rows } = await pool.query(
+  const { rows } = await db.query(
     `UPDATE properties
      SET name = COALESCE($1, name),
          address = COALESCE($2, address),
@@ -77,8 +77,8 @@ propertiesRouter.put('/:id', async (req, res) => {
 // DELETE /api/properties/:id
 propertiesRouter.delete('/:id', async (req, res) => {
   if (!dbAvailable) return res.status(503).json({ error: 'Database not available' });
-  const pool = getPool()!;
-  const { rowCount } = await pool.query('DELETE FROM properties WHERE id = $1', [req.params.id]);
+  const db = getDb()!;
+  const { rowCount } = await db.query('DELETE FROM properties WHERE id = $1', [req.params.id]);
   if (rowCount === 0) return res.status(404).json({ error: 'Property not found' });
   res.json({ deleted: true });
 });

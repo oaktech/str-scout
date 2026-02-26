@@ -3,6 +3,7 @@ import { useStore } from '../store';
 import * as api from '../services/api';
 import CurrencyInput from './shared/CurrencyInput';
 import PercentInput from './shared/PercentInput';
+import AddressAutocomplete from './shared/AddressAutocomplete';
 import type { PropertyType, ExpenseFrequency } from '../types';
 
 const PROPERTY_TYPES: { value: PropertyType; label: string }[] = [
@@ -171,7 +172,16 @@ export default function AddPropertyWizard() {
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <label className="block text-[11px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">Address</label>
-                <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} />
+                <AddressAutocomplete
+                  value={address}
+                  onChange={setAddress}
+                  onSelect={({ address: addr, city: c, state: s, zip: z }) => {
+                    setAddress(addr);
+                    if (c) setCity(c);
+                    if (s) setState(s);
+                    if (z) setZip(z);
+                  }}
+                />
               </div>
               <div>
                 <label className="block text-[11px] text-scout-drift uppercase tracking-[0.08em] font-medium mb-1.5">City</label>

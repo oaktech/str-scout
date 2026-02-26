@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getPool, dbAvailable } from '../services/db.js';
+import { getDb, dbAvailable } from '../services/db.js';
 import { calculate } from '../services/calculations.js';
 import { getPropertyFinancials } from '../services/propertyData.js';
 
@@ -8,9 +8,9 @@ export const dashboardRouter = Router();
 // GET /api/dashboard — portfolio summary
 dashboardRouter.get('/dashboard', async (_req, res) => {
   if (!dbAvailable) return res.status(503).json({ error: 'Database not available' });
-  const pool = getPool()!;
+  const db = getDb()!;
 
-  const { rows: properties } = await pool.query(
+  const { rows: properties } = await db.query(
     'SELECT id, name, address, city, state, property_type, unit_count, status, created_at FROM properties ORDER BY created_at DESC',
   );
 

@@ -1,4 +1,4 @@
-import { getPool } from './db.js';
+import { getDb, dbType } from './db.js';
 
 interface Migration {
   name: string;
@@ -117,27 +117,50 @@ const migrations: Migration[] = [
   },
 ];
 
+/** Translate PostgreSQL DDL to SQLite-compatible DDL */
+function toSqliteDDL(sql: string): string {
+  return sql
+    .replace(/SERIAL\s+PRIMARY\s+KEY/gi, 'INTEGER PRIMARY KEY AUTOINCREMENT')
+    .replace(/TIMESTAMPTZ/gi, 'TEXT')
+    .replace(/NUMERIC\(\d+,\d+\)/gi, 'REAL')
+    .replace(/BOOLEAN/gi, 'INTEGER')
+    .replace(/DEFAULT\s+false/gi, 'DEFAULT 0')
+    .replace(/DEFAULT\s+true/gi, 'DEFAULT 1')
+    .replace(/\bNOW\(\)/gi, "(datetime('now'))");
+}
+
 export async function runMigrations(): Promise<void> {
-  const pool = getPool();
-  if (!pool) return;
+  const db = getDb();
+  if (!db) return;
+
+  const isSqlite = dbType === 'sqlite';
 
   // Create migrations tracking table
-  await pool.query(`
+  const createMigrationsTable = `
     CREATE TABLE IF NOT EXISTS migrations (
       name       TEXT PRIMARY KEY,
       applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-  `);
+  `;
+  await db.query(isSqlite ? toSqliteDDL(createMigrationsTable) : createMigrationsTable);
 
   // Get already-applied migrations
-  const { rows } = await pool.query('SELECT name FROM migrations');
+  const { rows } = await db.query('SELECT name FROM migrations');
   const applied = new Set(rows.map((r: { name: string }) => r.name));
 
   for (const migration of migrations) {
     if (applied.has(migration.name)) continue;
     console.log(`[migrations] Applying ${migration.name}...`);
-    await pool.query(migration.sql);
-    await pool.query('INSERT INTO migrations (name) VALUES ($1)', [migration.name]);
+
+    const sql = isSqlite ? toSqliteDDL(migration.sql) : migration.sql;
+    await db.query(sql);
+
+    await db.query(
+      isSqlite
+        ? "INSERT INTO migrations (name) VALUES (?)"
+        : 'INSERT INTO migrations (name) VALUES ($1)',
+      [migration.name],
+    );
   }
 
   console.log('[migrations] All migrations applied');

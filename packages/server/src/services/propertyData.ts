@@ -1,16 +1,16 @@
-import { getPool } from './db.js';
+import { getDb } from './db.js';
 import type { CalculationInput, ExpenseItem } from './calculations.js';
 
 /** Fetch all financial data for a property and shape it into CalculationInput */
 export async function getPropertyFinancials(propertyId: number): Promise<CalculationInput | null> {
-  const pool = getPool()!;
+  const db = getDb()!;
 
   const [propRes, acqRes, finRes, incRes, expRes] = await Promise.all([
-    pool.query('SELECT * FROM properties WHERE id = $1', [propertyId]),
-    pool.query('SELECT * FROM acquisition_costs WHERE property_id = $1', [propertyId]),
-    pool.query('SELECT * FROM financing WHERE property_id = $1', [propertyId]),
-    pool.query('SELECT * FROM rental_income WHERE property_id = $1', [propertyId]),
-    pool.query('SELECT * FROM operating_expenses WHERE property_id = $1', [propertyId]),
+    db.query('SELECT * FROM properties WHERE id = $1', [propertyId]),
+    db.query('SELECT * FROM acquisition_costs WHERE property_id = $1', [propertyId]),
+    db.query('SELECT * FROM financing WHERE property_id = $1', [propertyId]),
+    db.query('SELECT * FROM rental_income WHERE property_id = $1', [propertyId]),
+    db.query('SELECT * FROM operating_expenses WHERE property_id = $1', [propertyId]),
   ]);
 
   if (propRes.rows.length === 0) return null;
@@ -23,7 +23,7 @@ export async function getPropertyFinancials(propertyId: number): Promise<Calcula
   const expenses: ExpenseItem[] = expRes.rows.map((e: any) => ({
     amount: parseFloat(e.amount),
     frequency: e.frequency as 'monthly' | 'annual' | 'per_turnover',
-    isPercentage: e.is_percentage,
+    isPercentage: !!e.is_percentage,
   }));
 
   return {
@@ -36,7 +36,7 @@ export async function getPropertyFinancials(propertyId: number): Promise<Calcula
       downPaymentPct: parseFloat(fin.down_payment_pct),
       interestRate: parseFloat(fin.interest_rate),
       loanTermYears: fin.loan_term_years,
-      isCashPurchase: fin.is_cash_purchase,
+      isCashPurchase: !!fin.is_cash_purchase,
     },
     income: {
       nightlyRate: parseFloat(inc.nightly_rate),

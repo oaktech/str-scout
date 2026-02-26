@@ -8,7 +8,7 @@ config({ path: resolve(__dirname, '../../../.env'), override: false });
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { initDb, dbAvailable } from './services/db.js';
+import { initDb, dbAvailable, dbType } from './services/db.js';
 import { runMigrations } from './services/migrations.js';
 import { propertiesRouter } from './routes/properties.js';
 import { financialsRouter } from './routes/financials.js';
@@ -43,6 +43,7 @@ async function start() {
       status: 'ok',
       timestamp: Date.now(),
       database: dbAvailable,
+      dbType: dbType,
     });
   });
 
@@ -55,7 +56,7 @@ async function start() {
 
   app.listen(PORT, () => {
     console.log(`[server] STR-Scout running on port ${PORT}`);
-    console.log(`[server] Database: ${dbAvailable ? 'connected' : 'not available'}`);
+    console.log(`[server] Database: ${dbAvailable ? `${dbType} connected` : 'not available'}`);
   });
 }
 

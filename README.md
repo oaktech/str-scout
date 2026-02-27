@@ -12,13 +12,14 @@ Investment analysis tool for short-term rental properties. Enter property detail
 - **Side-by-Side Comparison** — Compare 2-3 properties with color-coded metric thresholds
 - **Address Autocomplete** — Google Places integration auto-fills address, city, state, and zip
 - **Property Data Lookup** — RentCast integration auto-populates property value, tax assessment, type, and insurance estimates after address entry
+- **ALOS Margin Analysis** — Interactive slider simulates how Average Length of Stay (2–14 nights) impacts NOI, margins, and cash flow; includes 4 Recharts visualizations, full impact table, and strategy insights (sweet spot, break-even ALOS, sensitivity score)
 - **STR-Specific Expenses** — Per-turnover costs (cleaning, laundry) normalized by guest turnover rate
 
 ## Stack
 
 | Layer | Tech |
 |---|---|
-| Frontend | React, Vite, Tailwind CSS, Zustand |
+| Frontend | React, Vite, Tailwind CSS, Zustand, Recharts |
 | Backend | Express, TypeScript |
 | Database | SQLite (local dev) / PostgreSQL (production) |
 | AI | Anthropic Claude (document extraction) |
